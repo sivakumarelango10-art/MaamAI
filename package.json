@@ -1,0 +1,9 @@
+{
+  "name": "maamai",
+  "version": "1.2.0",
+  "private": true,
+  "description": "MaamAI - Multi-User Academic AI Assistant for Faculty",
+  "scripts": {
+    "build": "cd frontend && npm install && npm run build"
+  }
+}
