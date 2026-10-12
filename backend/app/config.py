@@ -32,6 +32,7 @@ class Settings(BaseSettings):
     # Google OAuth (Phase 2 preview configuration)
     GOOGLE_CLIENT_ID: str = "placeholder_client_id_phase2"
     GOOGLE_CLIENT_SECRET: str = "placeholder_client_secret_phase2"
+    GOOGLE_REDIRECT_URI: str = "http://localhost:8000/api/oauth/google/callback"
     ENABLE_GMAIL_SYNC: bool = False
     ENABLE_GCAL_SYNC: bool = False
 

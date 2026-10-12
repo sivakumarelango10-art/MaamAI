@@ -47,8 +47,8 @@ def get_google_auth_url(current_user: User = Depends(get_current_user)):
     state_token = f"user_{current_user.id}_nonce_phase2_preview"
     auth_url = (
         f"https://accounts.google.com/o/oauth2/v2/auth?"
-        f"client_id=preview_client_id&"
-        f"redirect_uri=http://localhost:8000/api/oauth/google/callback&"
+        f"client_id={settings.GOOGLE_CLIENT_ID}&"
+        f"redirect_uri={settings.GOOGLE_REDIRECT_URI}&"
         f"response_type=code&"
         f"scope=https://www.googleapis.com/auth/gmail.readonly%20https://www.googleapis.com/auth/calendar&"
         f"access_type=offline&"
