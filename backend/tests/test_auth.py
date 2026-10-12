@@ -239,3 +239,42 @@ def test_protected_routes_reject_missing_and_expired_tokens(client, user1):
     )
     headers = {"Authorization": f"Bearer {expired_token}"}
     assert client.get("/api/auth/me", headers=headers).status_code == 401
+
+# 11. Test OAuth state single-use nonce replay defense
+@patch("app.routers.auth.exchange_code_for_tokens")
+@patch("app.routers.auth.verify_google_id_token")
+def test_oauth_state_nonce_replay_rejected(mock_verify, mock_exchange, client):
+    mock_exchange.return_value = {
+        "access_token": "mock_acc_token",
+        "refresh_token": "mock_ref_token",
+        "id_token": "mock_id_token",
+        "expires_in": 3600,
+    }
+    mock_verify.return_value = {
+        "sub": "sub_siva_replay",
+        "email": "sivakumarelango10@gmail.com",
+        "name": "Sivakumar Elango",
+        "picture": "https://lh3.google.com/se.jpg",
+        "email_verified": True,
+    }
+
+    state = generate_oauth_state()
+    # First attempt succeeds
+    res1 = client.post("/api/auth/google/exchange", json={"code": "auth_code_once", "state": state})
+    assert res1.status_code == 200
+
+    # Second attempt with the exact same state MUST be rejected (replay attack prevention)
+    res2 = client.post("/api/auth/google/exchange", json={"code": "auth_code_twice", "state": state})
+    assert res2.status_code == 400
+    assert "already been consumed" in res2.json()["detail"].lower()
+
+# 12. Test cookie-only authentication works without Authorization Bearer header
+def test_cookie_only_session_authenticated(client, user1):
+    session_token = create_access_token(user_id=user1.id, username=user1.username)
+    # Request with cookie and NO Authorization header
+    res = client.get("/api/auth/me", cookies={"maamai_session": session_token})
+    assert res.status_code == 200
+    data = res.json()
+    assert data["email"] == user1.email
+    assert data["username"] == user1.username
+

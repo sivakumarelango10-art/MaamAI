@@ -33,6 +33,7 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
   const [newTaskCategory, setNewTaskCategory] = useState('Grading');
   const [newTaskDueDate, setNewTaskDueDate] = useState('Friday');
   const [newTaskPriority, setNewTaskPriority] = useState<'high' | 'medium' | 'low'>('medium');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const filteredTasks = tasks.filter((t) => {
     if (filterPriority === 'All') return true;
@@ -42,16 +43,21 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTaskTitle.trim() || !onCreateTask) return;
-    await onCreateTask({
-      title: newTaskTitle.trim(),
-      category: newTaskCategory,
-      due_date: newTaskDueDate,
-      priority: newTaskPriority,
-      status: 'pending',
-      demo_label: 'Demo Task',
-    });
-    setNewTaskTitle('');
-    setIsAddOpen(false);
+    setIsSubmitting(true);
+    try {
+      await onCreateTask({
+        title: newTaskTitle.trim(),
+        category: newTaskCategory,
+        due_date: newTaskDueDate,
+        priority: newTaskPriority,
+        status: 'pending',
+        demo_label: '',
+      });
+      setNewTaskTitle('');
+      setIsAddOpen(false);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (isLoading) {
@@ -62,16 +68,16 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
     <div className="space-y-4">
       {/* Controls */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-1 text-xs">
+        <div className="flex items-center gap-1.5 text-xs">
           {['All', 'high', 'medium', 'low'].map((p) => (
             <button
               key={p}
               type="button"
               onClick={() => setFilterPriority(p)}
-              className={`px-3 py-1 rounded-lg font-medium capitalize transition-colors ${
+              className={`px-3 py-1.5 rounded-lg font-medium capitalize transition-all duration-180 ${
                 filterPriority === p
-                  ? 'bg-brand-600 text-white shadow-xs'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                  ? 'bg-ink text-white shadow-xs'
+                  : 'bg-canvas text-secondary hover:text-ink hover:bg-slate-200'
               }`}
             >
               {p}
@@ -81,7 +87,7 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
 
         {onCreateTask && (
           <Button
-            variant="outline"
+            variant="primary"
             size="sm"
             onClick={() => setIsAddOpen(true)}
             icon={<Plus className="w-3.5 h-3.5" />}
@@ -97,30 +103,30 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
           description="You are caught up with your academic deliverables."
         />
       ) : (
-        <div className="divide-y divide-slate-100 dark:divide-slate-800 border border-slate-200/80 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900 shadow-xs">
+        <div className="divide-y divide-line border border-line rounded-xl overflow-hidden bg-white shadow-xs">
           {filteredTasks.map((task) => {
             const isCompleted = task.status === 'completed';
 
             return (
               <div
                 key={task.id}
-                className={`p-3.5 sm:p-4 flex items-center justify-between gap-3 transition-colors ${
+                className={`p-3.5 sm:p-4 flex items-center justify-between gap-3 transition-colors duration-180 ${
                   isCompleted
-                    ? 'bg-slate-50/50 dark:bg-slate-900/40 opacity-70'
-                    : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'
+                    ? 'bg-canvas/60 opacity-65'
+                    : 'hover:bg-canvas/50'
                 }`}
               >
                 <div className="flex items-start gap-3 min-w-0 flex-1">
                   <button
                     type="button"
                     onClick={() => onToggleTaskStatus(task)}
-                    className="mt-0.5 text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors flex-shrink-0"
+                    className="mt-0.5 text-secondary hover:text-cobalt transition-colors duration-180 flex-shrink-0"
                     title={isCompleted ? 'Mark incomplete' : 'Mark complete'}
                   >
                     {isCompleted ? (
-                      <CheckSquare className="w-4 h-4 text-emerald-500" />
+                      <CheckSquare className="w-4 h-4 text-emerald-600" />
                     ) : (
-                      <Square className="w-4 h-4 text-slate-400" />
+                      <Square className="w-4 h-4 text-secondary" />
                     )}
                   </button>
 
@@ -129,33 +135,35 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
                       <span
                         className={`text-sm font-semibold truncate ${
                           isCompleted
-                            ? 'line-through text-slate-400 dark:text-slate-500'
-                            : 'text-slate-900 dark:text-slate-100'
+                            ? 'line-through text-secondary'
+                            : 'text-ink'
                         }`}
                       >
                         {task.title}
                       </span>
                       <Badge
-                        variant={task.priority === 'high' ? 'high' : 'medium'}
+                        variant={task.priority === 'high' ? 'danger' : task.priority === 'medium' ? 'amber' : 'neutral'}
                         size="sm"
                       >
                         {task.priority}
                       </Badge>
-                      <Badge variant="blue" size="sm">
+                      <Badge variant="neutral" size="sm">
                         {task.category}
                       </Badge>
-                      <Badge variant="demo" size="sm">
-                        {task.demo_label}
-                      </Badge>
+                      {task.demo_label && (
+                        <Badge variant="amber" size="sm">
+                          {task.demo_label}
+                        </Badge>
+                      )}
                     </div>
 
-                    <div className="flex items-center gap-3 text-xs text-slate-400 dark:text-slate-500">
+                    <div className="flex items-center gap-3 text-xs text-secondary">
                       <span className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
+                        <Clock className="w-3 h-3 text-secondary" />
                         Due: {task.due_date}
                       </span>
                       {task.description && (
-                        <span className="truncate hidden sm:inline">
+                        <span className="truncate hidden sm:inline text-secondary">
                           • {task.description}
                         </span>
                       )}
@@ -167,7 +175,7 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
                   <button
                     type="button"
                     onClick={() => onDeleteTask(task.id)}
-                    className="text-slate-400 hover:text-rose-500 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    className="text-secondary hover:text-red-600 p-1.5 rounded-lg hover:bg-canvas transition-colors duration-180"
                     title="Delete task"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -181,18 +189,18 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
 
       {/* Add Task Modal */}
       {isAddOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/50 backdrop-blur-xs animate-in fade-in duration-180">
           <div className="fixed inset-0" onClick={() => setIsAddOpen(false)} />
-          <div className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-5 sm:p-6 z-10 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-              <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <CheckSquare className="w-4 h-4 text-brand-600" />
+          <div className="relative w-full max-w-md bg-white rounded-2xl shadow-xl border border-line p-5 sm:p-6 z-10 space-y-4">
+            <div className="flex items-center justify-between border-b border-line pb-3">
+              <h3 className="text-base font-bold text-ink flex items-center gap-2">
+                <CheckSquare className="w-4 h-4 text-cobalt" />
                 Add Faculty Task
               </h3>
               <button
                 type="button"
                 onClick={() => setIsAddOpen(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                className="text-secondary hover:text-ink transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -200,7 +208,7 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
 
             <form onSubmit={handleCreate} className="space-y-3 text-xs">
               <div>
-                <label className="font-semibold text-slate-700 dark:text-slate-300">
+                <label className="font-semibold text-ink">
                   Task Title
                 </label>
                 <input
@@ -209,13 +217,13 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
                   value={newTaskTitle}
                   onChange={(e) => setNewTaskTitle(e.target.value)}
                   placeholder="e.g., Review midterm question bank"
-                  className="w-full mt-1 p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white"
+                  className="w-full mt-1 p-2 bg-white border border-line rounded-lg text-ink focus:outline-none focus:ring-1 focus:ring-cobalt focus:border-cobalt"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="font-semibold text-slate-700 dark:text-slate-300">
+                  <label className="font-semibold text-ink">
                     Category
                   </label>
                   <input
@@ -223,11 +231,11 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
                     value={newTaskCategory}
                     onChange={(e) => setNewTaskCategory(e.target.value)}
                     placeholder="e.g., Committee, Research"
-                    className="w-full mt-1 p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white"
+                    className="w-full mt-1 p-2 bg-white border border-line rounded-lg text-ink focus:outline-none focus:ring-1 focus:ring-cobalt focus:border-cobalt"
                   />
                 </div>
                 <div>
-                  <label className="font-semibold text-slate-700 dark:text-slate-300">
+                  <label className="font-semibold text-ink">
                     Due Date
                   </label>
                   <input
@@ -235,19 +243,19 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
                     value={newTaskDueDate}
                     onChange={(e) => setNewTaskDueDate(e.target.value)}
                     placeholder="e.g., Today, Friday, Oct 20"
-                    className="w-full mt-1 p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white"
+                    className="w-full mt-1 p-2 bg-white border border-line rounded-lg text-ink focus:outline-none focus:ring-1 focus:ring-cobalt focus:border-cobalt"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="font-semibold text-slate-700 dark:text-slate-300">
+                <label className="font-semibold text-ink">
                   Priority
                 </label>
                 <select
                   value={newTaskPriority}
                   onChange={(e) => setNewTaskPriority(e.target.value as 'high' | 'medium' | 'low')}
-                  className="w-full mt-1 p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white"
+                  className="w-full mt-1 p-2 bg-white border border-line rounded-lg text-ink focus:outline-none focus:ring-1 focus:ring-cobalt focus:border-cobalt"
                 >
                   <option value="high">High</option>
                   <option value="medium">Medium</option>
@@ -255,11 +263,11 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
                 </select>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-line">
                 <Button variant="ghost" size="sm" onClick={() => setIsAddOpen(false)}>
                   Cancel
                 </Button>
-                <Button variant="primary" size="sm" type="submit">
+                <Button variant="primary" size="sm" type="submit" isLoading={isSubmitting}>
                   Save Task
                 </Button>
               </div>

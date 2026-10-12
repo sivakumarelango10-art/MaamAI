@@ -30,62 +30,61 @@ export const EmailDetailModal: React.FC<EmailDetailModalProps> = ({
   if (!email) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
       <div
         className="fixed inset-0"
         onClick={onClose}
         aria-label="Close modal overlay"
       />
-      <div className="relative w-full max-w-2xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden z-10 flex flex-col max-h-[90vh]">
+      <div className="relative w-full max-w-2xl bg-white dark:bg-[#1A1D22] rounded-2xl shadow-dropdown border border-[#E5E7EB] dark:border-[#262B33] overflow-hidden z-10 flex flex-col max-h-[90vh]">
         {/* Modal Header */}
-        <div className="p-4 sm:p-6 border-b border-slate-100 dark:border-slate-800 flex items-start justify-between gap-4">
-          <div className="space-y-1">
+        <div className="p-5 sm:p-6 border-b border-[#E5E7EB] dark:border-[#262B33] flex items-start justify-between gap-4">
+          <div className="space-y-1.5">
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant={email.priority === 'high' ? 'high' : 'medium'}>
                 {email.priority.toUpperCase()} PRIORITY
               </Badge>
-              <Badge variant="purple">{email.category}</Badge>
-              <Badge variant="demo">{email.demo_label}</Badge>
+              <Badge variant="cobalt">{email.category}</Badge>
             </div>
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white pt-1">
+            <h3 className="text-lg font-bold text-[#111111] dark:text-white pt-1">
               {email.subject}
             </h3>
           </div>
           <button
             onClick={onClose}
             aria-label="Close modal"
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+            className="p-1.5 rounded-lg text-[#626875] hover:text-[#111111] dark:text-[#94A3B8] dark:hover:text-white hover:bg-[#F7F8FA] dark:hover:bg-[#13161A] cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Sender details */}
-        <div className="px-4 sm:px-6 py-3 bg-slate-50 dark:bg-slate-800/40 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600 dark:text-slate-400">
+        <div className="px-5 sm:px-6 py-3 bg-[#F7F8FA] dark:bg-[#13161A] border-b border-[#E5E7EB] dark:border-[#262B33] flex flex-wrap items-center justify-between gap-2 text-xs text-[#626875] dark:text-[#94A3B8]">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center font-bold text-slate-700 dark:text-slate-200">
-              <User className="w-3.5 h-3.5" />
+            <div className="w-7 h-7 rounded-full bg-white dark:bg-[#1E2228] border border-[#E5E7EB] dark:border-[#262B33] flex items-center justify-center font-bold text-[#111111] dark:text-white">
+              <User className="w-3.5 h-3.5 text-[#3157E8]" />
             </div>
             <div>
-              <span className="font-semibold text-slate-900 dark:text-slate-100">
+              <span className="font-semibold text-[#111111] dark:text-white">
                 {email.sender_name}
               </span>{' '}
               &lt;{email.sender_email}&gt;
             </div>
           </div>
-          <div className="flex items-center gap-1.5 text-slate-400">
+          <div className="flex items-center gap-1.5 text-[#626875] dark:text-[#94A3B8]">
             <Clock className="w-3.5 h-3.5" />
             <span>{email.received_at}</span>
           </div>
         </div>
 
         {/* Body content */}
-        <div className="p-4 sm:p-6 overflow-y-auto flex-1 text-sm text-slate-800 dark:text-slate-200 whitespace-pre-line leading-relaxed font-sans">
+        <div className="p-5 sm:p-6 overflow-y-auto flex-1 text-sm text-[#111111] dark:text-[#E2E8F0] whitespace-pre-line leading-relaxed font-sans">
           {email.body}
         </div>
 
         {/* Modal Actions */}
-        <div className="p-4 sm:p-6 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
+        <div className="p-4 sm:p-6 bg-[#F7F8FA] dark:bg-[#13161A] border-t border-[#E5E7EB] dark:border-[#262B33] flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
@@ -105,7 +104,6 @@ export const EmailDetailModal: React.FC<EmailDetailModalProps> = ({
                   onClose();
                   onViewDraft();
                 }}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white"
                 icon={<CheckCircle className="w-4 h-4" />}
               >
                 View Pending AI Draft
@@ -116,7 +114,7 @@ export const EmailDetailModal: React.FC<EmailDetailModalProps> = ({
                 size="sm"
                 isLoading={isGeneratingDraft}
                 onClick={() => onGenerateDraft(email.id)}
-                icon={<Sparkles className="w-4 h-4 text-amber-300" />}
+                icon={<Sparkles className="w-4 h-4" />}
               >
                 Generate AI Reply Draft
               </Button>

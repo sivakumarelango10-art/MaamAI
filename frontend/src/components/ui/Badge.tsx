@@ -2,7 +2,7 @@ import React from 'react';
 
 interface BadgeProps {
   children: React.ReactNode;
-  variant?: 'demo' | 'high' | 'medium' | 'low' | 'neutral' | 'success' | 'warning' | 'purple' | 'blue';
+  variant?: 'demo' | 'high' | 'medium' | 'low' | 'neutral' | 'success' | 'warning' | 'purple' | 'blue' | 'cobalt' | 'emerald' | 'amber' | 'danger';
   size?: 'sm' | 'md';
   className?: string;
 }
@@ -13,18 +13,22 @@ export const Badge: React.FC<BadgeProps> = ({
   size = 'md',
   className = '',
 }) => {
-  const sizeClasses = size === 'sm' ? 'px-1.5 py-0.5 text-xs' : 'px-2.5 py-0.5 text-xs font-medium';
+  const sizeClasses = size === 'sm' ? 'px-2 py-0.5 text-[11px]' : 'px-2.5 py-0.5 text-xs font-medium';
 
   const variantClasses = {
-    demo: 'bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300 dark:border-amber-700 font-semibold tracking-wide',
-    high: 'bg-rose-100 text-rose-800 dark:bg-rose-950/70 dark:text-rose-300 border border-rose-200 dark:border-rose-800',
-    medium: 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800',
-    low: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700',
-    neutral: 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700',
-    success: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800',
-    warning: 'bg-orange-100 text-orange-800 dark:bg-orange-950/70 dark:text-orange-300 border border-orange-200 dark:border-orange-800',
-    purple: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950/70 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800',
-    blue: 'bg-sky-100 text-sky-800 dark:bg-sky-950/70 dark:text-sky-300 border border-sky-200 dark:border-sky-800',
+    demo: 'bg-[#FFFBEB] text-[#B45309] dark:bg-[#362208] dark:text-[#FCD34D] border border-[#FDE68A] dark:border-[#54360C] font-semibold',
+    high: 'bg-[#FEF2F2] text-[#B91C1C] dark:bg-[#3D1414] dark:text-[#FCA5A5] border border-[#FECACA] dark:border-[#5C1D1D]',
+    danger: 'bg-[#FEF2F2] text-[#B91C1C] dark:bg-[#3D1414] dark:text-[#FCA5A5] border border-[#FECACA] dark:border-[#5C1D1D]',
+    medium: 'bg-[#FFFBEB] text-[#B45309] dark:bg-[#362208] dark:text-[#FCD34D] border border-[#FDE68A] dark:border-[#54360C]',
+    low: 'bg-[#F7F8FA] text-[#626875] dark:bg-[#22262B] dark:text-[#9CA3AF] border border-[#E5E7EB] dark:border-[#2F353C]',
+    neutral: 'bg-[#F7F8FA] text-[#626875] dark:bg-[#22262B] dark:text-[#9CA3AF] border border-[#E5E7EB] dark:border-[#2F353C]',
+    success: 'bg-[#F0FDF4] text-[#16803D] dark:bg-[#0E2E19] dark:text-[#86EFAC] border border-[#BBF7D0] dark:border-[#144A27]',
+    emerald: 'bg-[#F0FDF4] text-[#16803D] dark:bg-[#0E2E19] dark:text-[#86EFAC] border border-[#BBF7D0] dark:border-[#144A27]',
+    warning: 'bg-[#FFFBEB] text-[#B45309] dark:bg-[#362208] dark:text-[#FCD34D] border border-[#FDE68A] dark:border-[#54360C]',
+    amber: 'bg-[#FFFBEB] text-[#B45309] dark:bg-[#362208] dark:text-[#FCD34D] border border-[#FDE68A] dark:border-[#54360C]',
+    purple: 'bg-[#EEF2FF] text-[#3157E8] dark:bg-[#16203D] dark:text-[#6085FA] border border-[#D0DBFA] dark:border-[#203264]',
+    blue: 'bg-[#EEF2FF] text-[#3157E8] dark:bg-[#16203D] dark:text-[#6085FA] border border-[#D0DBFA] dark:border-[#203264]',
+    cobalt: 'bg-[#EEF2FF] text-[#3157E8] dark:bg-[#16203D] dark:text-[#6085FA] border border-[#D0DBFA] dark:border-[#203264]',
   }[variant];
 
   return (

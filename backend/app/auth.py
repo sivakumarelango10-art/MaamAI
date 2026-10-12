@@ -168,7 +168,6 @@ def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    token = credentials.credentials
     payload = decode_access_token(token, db=db)
     user_id_str = payload.get("sub")
     if not user_id_str:

@@ -31,40 +31,40 @@ export const api = {
     return headers;
   },
 
+  async request<T>(path: string, options: RequestInit = {}): Promise<T> {
+    const url = path.startsWith('http') ? path : `${BASE_URL}${path}`;
+    const headers = {
+      ...this.getAuthHeaders(),
+      ...((options.headers as Record<string, string>) || {}),
+    };
+    const res = await fetch(url, {
+      ...options,
+      headers,
+      credentials: 'include', // Automatically send HttpOnly maamai_session cookies
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || err.message || `Request failed (${res.status})`);
+    }
+    return res.json();
+  },
+
   // -------------------------------------------------------------
   // Google OAuth 2.0 & Session Endpoints
   // -------------------------------------------------------------
   async getGoogleAuthUrl(): Promise<{ auth_url: string; state: string }> {
-    const res = await fetch(`${BASE_URL}/auth/google/url`);
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.detail || 'Failed to retrieve Google authentication URL');
-    }
-    return await res.json();
+    return this.request<{ auth_url: string; state: string }>('/auth/google/url');
   },
 
   async exchangeGoogleCode(code: string, state: string): Promise<AuthTokenResponse> {
-    const res = await fetch(`${BASE_URL}/auth/google/exchange`, {
+    return this.request<AuthTokenResponse>('/auth/google/exchange', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ code, state }),
     });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.detail || 'Google authentication exchange failed');
-    }
-    return await res.json();
   },
 
   async getMe(): Promise<StaffUser> {
-    const res = await fetch(`${BASE_URL}/auth/me`, {
-      headers: this.getAuthHeaders(),
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.detail || 'Session expired or invalid profile');
-    }
-    return await res.json();
+    return this.request<StaffUser>('/auth/me');
   },
 
   async logout(): Promise<void> {
@@ -72,6 +72,7 @@ export const api = {
       await fetch(`${BASE_URL}/auth/logout`, {
         method: 'POST',
         headers: this.getAuthHeaders(),
+        credentials: 'include',
       });
     } catch {
       // Ignore network errors on logout
@@ -85,11 +86,7 @@ export const api = {
   // -------------------------------------------------------------
   async getOAuthStatus(): Promise<OAuthStatus> {
     try {
-      const res = await fetch(`${BASE_URL}/oauth/google/status`, {
-        headers: this.getAuthHeaders(),
-      });
-      if (!res.ok) throw new Error('OAuth status error');
-      return await res.json();
+      return await this.request<OAuthStatus>('/oauth/google/status');
     } catch {
       return {
         is_connected: false,
@@ -100,11 +97,7 @@ export const api = {
   },
 
   async disconnectOAuth(): Promise<void> {
-    const res = await fetch(`${BASE_URL}/oauth/google/disconnect`, {
-      method: 'POST',
-      headers: this.getAuthHeaders(),
-    });
-    if (!res.ok) throw new Error('Disconnect error');
+    await this.request('/oauth/google/disconnect', { method: 'POST' });
   },
 
   // -------------------------------------------------------------
@@ -112,7 +105,7 @@ export const api = {
   // -------------------------------------------------------------
   async getHealth(): Promise<HealthStatus> {
     try {
-      const res = await fetch(`${BASE_URL}/health`);
+      const res = await fetch(`${BASE_URL}/health`, { credentials: 'include' });
       if (!res.ok) throw new Error('Health check error');
       return await res.json();
     } catch {
@@ -131,10 +124,9 @@ export const api = {
   // Workspace Endpoints (Protected by User Session)
   // -------------------------------------------------------------
   async getBriefing(): Promise<BriefingData> {
-    const res = await fetch(`${BASE_URL}/briefing`, {
-      headers: this.getAuthHeaders(),
-    });
-    if (!res.ok) {
+    try {
+      return await this.request<BriefingData>('/briefing');
+    } catch {
       return {
         id: 0,
         user_id: 0,
@@ -148,160 +140,124 @@ export const api = {
         generated_at: new Date().toISOString(),
       };
     }
-    return await res.json();
   },
 
   async getEmails(category?: string, priority?: string): Promise<EmailItem[]> {
-    const params = new URLSearchParams();
-    if (category && category !== 'All') params.append('category', category);
-    if (priority && priority !== 'All') params.append('priority', priority);
-    const url = `${BASE_URL}/emails${params.toString() ? `?${params.toString()}` : ''}`;
-    const res = await fetch(url, { headers: this.getAuthHeaders() });
-    if (!res.ok) return [];
-    return await res.json();
+    try {
+      const params = new URLSearchParams();
+      if (category && category !== 'All') params.append('category', category);
+      if (priority && priority !== 'All') params.append('priority', priority);
+      const query = params.toString() ? `?${params.toString()}` : '';
+      return await this.request<EmailItem[]>(`/emails${query}`);
+    } catch {
+      return [];
+    }
   },
 
   async toggleEmailRead(id: number): Promise<EmailItem> {
-    const res = await fetch(`${BASE_URL}/emails/${id}/toggle-read`, {
-      method: 'PATCH',
-      headers: this.getAuthHeaders(),
-    });
-    if (!res.ok) throw new Error('Toggle read error');
-    return await res.json();
+    return this.request<EmailItem>(`/emails/${id}/toggle-read`, { method: 'PATCH' });
   },
 
   async generateDraftForEmail(emailId: number): Promise<AIDraftItem> {
-    const res = await fetch(`${BASE_URL}/emails/${emailId}/generate-draft`, {
-      method: 'POST',
-      headers: this.getAuthHeaders(),
-    });
-    if (!res.ok) throw new Error('Draft generation error');
-    return await res.json();
+    return this.request<AIDraftItem>(`/emails/${emailId}/generate-draft`, { method: 'POST' });
   },
 
   async saveGmailDraft(emailId: number): Promise<{ success: boolean; draft_id?: string; message: string }> {
-    const res = await fetch(`${BASE_URL}/emails/${emailId}/save-gmail-draft`, {
-      method: 'POST',
-      headers: this.getAuthHeaders(),
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.detail || 'Failed to save draft to Gmail');
-    }
-    return await res.json();
+    return this.request<{ success: boolean; draft_id?: string; message: string }>(
+      `/emails/${emailId}/save-gmail-draft`,
+      { method: 'POST' }
+    );
   },
 
   async getDrafts(status?: string): Promise<AIDraftItem[]> {
-    const params = new URLSearchParams();
-    if (status && status !== 'All') params.append('status', status);
-    const url = `${BASE_URL}/ai-drafts${params.toString() ? `?${params.toString()}` : ''}`;
-    const res = await fetch(url, { headers: this.getAuthHeaders() });
-    if (!res.ok) return [];
-    return await res.json();
+    try {
+      const params = new URLSearchParams();
+      if (status && status !== 'All') params.append('status', status);
+      const query = params.toString() ? `?${params.toString()}` : '';
+      return await this.request<AIDraftItem[]>(`/ai-drafts${query}`);
+    } catch {
+      return [];
+    }
   },
 
   async approveDraft(id: number): Promise<AIDraftItem> {
-    const res = await fetch(`${BASE_URL}/ai-drafts/${id}/approve`, {
-      method: 'POST',
-      headers: this.getAuthHeaders(),
-    });
-    if (!res.ok) throw new Error('Approve draft error');
-    return await res.json();
+    return this.request<AIDraftItem>(`/ai-drafts/${id}/approve`, { method: 'POST' });
   },
 
   async rejectDraft(id: number): Promise<AIDraftItem> {
-    const res = await fetch(`${BASE_URL}/ai-drafts/${id}/reject`, {
-      method: 'POST',
-      headers: this.getAuthHeaders(),
-    });
-    if (!res.ok) throw new Error('Reject draft error');
-    return await res.json();
+    return this.request<AIDraftItem>(`/ai-drafts/${id}/reject`, { method: 'POST' });
   },
 
   async updateDraft(id: number, data: Partial<AIDraftItem>): Promise<AIDraftItem> {
-    const res = await fetch(`${BASE_URL}/ai-drafts/${id}`, {
+    return this.request<AIDraftItem>(`/ai-drafts/${id}`, {
       method: 'PATCH',
-      headers: this.getAuthHeaders(),
       body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error('Update draft error');
-    return await res.json();
   },
 
   async saveDraftToGmailAccount(draftId: number): Promise<{ success: boolean; draft_id?: string; message: string }> {
-    const res = await fetch(`${BASE_URL}/ai-drafts/${draftId}/save-to-gmail`, {
-      method: 'POST',
-      headers: this.getAuthHeaders(),
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.detail || 'Failed to save draft to Gmail account');
-    }
-    return await res.json();
+    return this.request<{ success: boolean; draft_id?: string; message: string }>(
+      `/ai-drafts/${draftId}/save-to-gmail`,
+      { method: 'POST' }
+    );
   },
 
   async getCalendarEvents(dateStr?: string): Promise<CalendarEventItem[]> {
-    const params = new URLSearchParams();
-    if (dateStr && dateStr !== 'All') params.append('date_str', dateStr);
-    const url = `${BASE_URL}/calendar${params.toString() ? `?${params.toString()}` : ''}`;
-    const res = await fetch(url, { headers: this.getAuthHeaders() });
-    if (!res.ok) return [];
-    return await res.json();
+    try {
+      const params = new URLSearchParams();
+      if (dateStr && dateStr !== 'All') params.append('date_str', dateStr);
+      const query = params.toString() ? `?${params.toString()}` : '';
+      return await this.request<CalendarEventItem[]>(`/calendar${query}`);
+    } catch {
+      return [];
+    }
   },
 
   async createCalendarEvent(eventData: Omit<CalendarEventItem, 'id' | 'user_id'>): Promise<CalendarEventItem> {
-    const res = await fetch(`${BASE_URL}/calendar`, {
+    return this.request<CalendarEventItem>('/calendar', {
       method: 'POST',
-      headers: this.getAuthHeaders(),
       body: JSON.stringify(eventData),
     });
-    if (!res.ok) throw new Error('Create event error');
-    return await res.json();
   },
 
   async getTasks(status?: string, priority?: string): Promise<TaskItem[]> {
-    const params = new URLSearchParams();
-    if (status && status !== 'All') params.append('status', status);
-    if (priority && priority !== 'All') params.append('priority', priority);
-    const url = `${BASE_URL}/tasks${params.toString() ? `?${params.toString()}` : ''}`;
-    const res = await fetch(url, { headers: this.getAuthHeaders() });
-    if (!res.ok) return [];
-    return await res.json();
+    try {
+      const params = new URLSearchParams();
+      if (status && status !== 'All') params.append('status', status);
+      if (priority && priority !== 'All') params.append('priority', priority);
+      const query = params.toString() ? `?${params.toString()}` : '';
+      return await this.request<TaskItem[]>(`/tasks${query}`);
+    } catch {
+      return [];
+    }
   },
 
   async createTask(taskData: Omit<TaskItem, 'id' | 'user_id'>): Promise<TaskItem> {
-    const res = await fetch(`${BASE_URL}/tasks`, {
+    return this.request<TaskItem>('/tasks', {
       method: 'POST',
-      headers: this.getAuthHeaders(),
       body: JSON.stringify(taskData),
     });
-    if (!res.ok) throw new Error('Create task error');
-    return await res.json();
   },
 
   async updateTask(id: number, data: Partial<TaskItem>): Promise<TaskItem> {
-    const res = await fetch(`${BASE_URL}/tasks/${id}`, {
+    return this.request<TaskItem>(`/tasks/${id}`, {
       method: 'PATCH',
-      headers: this.getAuthHeaders(),
       body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error('Update task error');
-    return await res.json();
   },
 
   async getActivity(): Promise<ActivityLogItem[]> {
-    const res = await fetch(`${BASE_URL}/activity`, {
-      headers: this.getAuthHeaders(),
-    });
-    if (!res.ok) return [];
-    return await res.json();
+    try {
+      return await this.request<ActivityLogItem[]>('/activity');
+    } catch {
+      return [];
+    }
   },
 
   async getSettings(): Promise<FacultySettingsData> {
-    const res = await fetch(`${BASE_URL}/settings`, {
-      headers: this.getAuthHeaders(),
-    });
-    if (!res.ok) {
+    try {
+      return await this.request<FacultySettingsData>('/settings');
+    } catch {
       return {
         faculty_name: 'Faculty Staff',
         faculty_role: 'Academic Staff',
@@ -314,16 +270,12 @@ export const api = {
         calendar_integration_status: 'Google Workspace',
       };
     }
-    return await res.json();
   },
 
   async updateSettings(data: Partial<FacultySettingsData>): Promise<FacultySettingsData> {
-    const res = await fetch(`${BASE_URL}/settings`, {
+    return this.request<FacultySettingsData>('/settings', {
       method: 'PATCH',
-      headers: this.getAuthHeaders(),
       body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error('Update settings error');
-    return await res.json();
   },
 };

@@ -79,29 +79,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [currentUser]);
 
-  // Reconcile user profile with verified backend session on mount
+  // Reconcile user profile with verified backend session on mount (supports both Bearer token & HttpOnly cookie)
   useEffect(() => {
     let isMounted = true;
-    if (token) {
-      setIsLoadingAuth(true);
-      api.getMe()
-        .then((verifiedUser) => {
-          if (isMounted) {
-            setCurrentUser(verifiedUser);
-            setIsLoadingAuth(false);
-          }
-        })
-        .catch(() => {
-          if (isMounted) {
-            // Token expired or invalid on server - clear local session
-            setToken(null);
-            setCurrentUser(null);
-            setIsLoadingAuth(false);
-          }
-        });
-    } else {
-      setIsLoadingAuth(false);
-    }
+    setIsLoadingAuth(true);
+
+    api.getMe()
+      .then((verifiedUser) => {
+        if (isMounted) {
+          setCurrentUser(verifiedUser);
+          setIsLoadingAuth(false);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          // Token expired or invalid on server - clear local session
+          setToken(null);
+          setCurrentUser(null);
+          setIsLoadingAuth(false);
+        }
+      });
 
     return () => {
       isMounted = false;

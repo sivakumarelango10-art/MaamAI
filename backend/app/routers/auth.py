@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.database import get_db
-from app.models import User, Briefing, ActivityLog, OAuthConnection
+from app.models import User, Briefing, ActivityLog, OAuthConnection, RevokedToken
 from app.schemas import UserResponse, TokenResponse, GoogleExchangeRequest
 from app.auth import (
     create_access_token,
@@ -45,7 +45,7 @@ UNAUTHORIZED_MESSAGE = (
 def _process_google_auth(code: str, state: str, db: Session) -> tuple[User, str]:
     """
     Core verification and provisioning pipeline for Google OAuth:
-    1. Cryptographic state verification
+    1. Cryptographic state verification & single-use nonce consumption (anti-replay)
     2. Code exchange
     3. ID token verification
     4. Exact allowlist check
@@ -59,6 +59,23 @@ def _process_google_auth(code: str, state: str, db: Session) -> tuple[User, str]
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid or expired OAuth state parameter. Please initiate login again.",
         )
+
+    # 1b. Single-use nonce consumption: prevent token replay attacks
+    state_parts = state.split(".")
+    nonce = state_parts[1] if len(state_parts) == 3 else ""
+    if nonce:
+        consumed_nonce = db.query(RevokedToken).filter(RevokedToken.token_jti == f"oauth_nonce:{nonce}").first()
+        if consumed_nonce:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="OAuth state parameter has already been consumed (replay attack detected). Please initiate login again.",
+            )
+        now_utc = datetime.datetime.now(datetime.timezone.utc)
+        db.add(RevokedToken(
+            token_jti=f"oauth_nonce:{nonce}",
+            expires_at=now_utc + datetime.timedelta(minutes=15),
+        ))
+        db.commit()
 
     # 2. Exchange code for Google tokens
     try:
@@ -254,6 +271,7 @@ def google_oauth_callback(
         httponly=True,
         secure=settings.ENVIRONMENT.lower() == "production",
         samesite="lax",
+        path="/",
         max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
     return response
@@ -275,6 +293,7 @@ def google_oauth_exchange(
         httponly=True,
         secure=settings.ENVIRONMENT.lower() == "production",
         samesite="lax",
+        path="/",
         max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
     return TokenResponse(
@@ -309,7 +328,7 @@ def logout(
         revoke_token(token, db=db, user_id=current_user.id)
 
     # Clear HttpOnly session cookie
-    response.delete_cookie("maamai_session")
+    response.delete_cookie("maamai_session", path="/")
 
     log = ActivityLog(
         user_id=current_user.id,

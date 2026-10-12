@@ -134,9 +134,12 @@ def verify_google_id_token(id_token_str: str) -> Dict[str, Any]:
     Validates signature, issuer, audience, expiration, and email_verified.
     Returns decoded token claims (sub, email, name, picture).
     """
-    # Allow unit testing mocks when GOOGLE_CLIENT_ID starts with 'test_' or 'mock_'
-    if settings.GOOGLE_CLIENT_ID.startswith(("test_", "mock_")):
-        # In test mode, verify basic JWT format if needed or parse claims safely
+    # Mock token verification is strictly prohibited in production mode
+    if settings.ENVIRONMENT.lower() == "production" and settings.GOOGLE_CLIENT_ID.startswith(("test_", "mock_")):
+        raise ValueError("CRITICAL SECURITY CONFIGURATION: Mock ID token verification is prohibited in production mode.")
+
+    if settings.GOOGLE_CLIENT_ID.startswith(("test_", "mock_")) and settings.ENVIRONMENT.lower() != "production":
+        # In non-production unit testing only, parse claims safely
         import jwt
         claims = jwt.decode(id_token_str, options={"verify_signature": False})
         return {

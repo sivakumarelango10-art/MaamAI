@@ -24,32 +24,26 @@ export const OverviewStats: React.FC<OverviewStatsProps> = ({
       subtitle: 'Unread high priority',
       icon: Mail,
       tab: 'inbox' as NavigationTab,
-      color: 'rose',
-      textColor: 'text-rose-600 dark:text-rose-400',
-      bgColor: 'bg-rose-50 dark:bg-rose-950/40',
-      borderColor: 'border-rose-200/80 dark:border-rose-900/60',
+      badgeColor: 'text-[#B91C1C] bg-[#FEF2F2] dark:bg-[#3D1414] dark:text-[#FCA5A5]',
+      accentColor: 'text-[#B91C1C]',
     },
     {
-      title: 'AI Drafts Awaiting Review',
+      title: 'AI Drafts Pending',
       value: pendingDraftsCount,
       subtitle: 'Human approval needed',
       icon: Sparkles,
       tab: 'drafts' as NavigationTab,
-      color: 'indigo',
-      textColor: 'text-indigo-600 dark:text-indigo-400',
-      bgColor: 'bg-indigo-50 dark:bg-indigo-950/40',
-      borderColor: 'border-indigo-200/80 dark:border-indigo-900/60',
+      badgeColor: 'text-[#3157E8] bg-[#EEF2FF] dark:bg-[#16203D] dark:text-[#6085FA]',
+      accentColor: 'text-[#3157E8]',
     },
     {
-      title: "Today's Schedule",
+      title: 'Today’s Schedule',
       value: todayMeetingsCount,
-      subtitle: 'Lectures & appointments',
+      subtitle: 'Lectures and meetings',
       icon: Calendar,
       tab: 'calendar' as NavigationTab,
-      color: 'sky',
-      textColor: 'text-sky-600 dark:text-sky-400',
-      bgColor: 'bg-sky-50 dark:bg-sky-950/40',
-      borderColor: 'border-sky-200/80 dark:border-sky-900/60',
+      badgeColor: 'text-[#111111] dark:text-white bg-[#F7F8FA] dark:bg-[#22262B]',
+      accentColor: 'text-[#111111] dark:text-white',
     },
     {
       title: 'Active Checklist',
@@ -57,10 +51,8 @@ export const OverviewStats: React.FC<OverviewStatsProps> = ({
       subtitle: 'Pending deliverables',
       icon: CheckSquare,
       tab: 'tasks' as NavigationTab,
-      color: 'emerald',
-      textColor: 'text-emerald-600 dark:text-emerald-400',
-      bgColor: 'bg-emerald-50 dark:bg-emerald-950/40',
-      borderColor: 'border-emerald-200/80 dark:border-emerald-900/60',
+      badgeColor: 'text-[#16803D] bg-[#F0FDF4] dark:bg-[#0E2E19] dark:text-[#86EFAC]',
+      accentColor: 'text-[#16803D]',
     },
   ];
 
@@ -73,22 +65,22 @@ export const OverviewStats: React.FC<OverviewStatsProps> = ({
             key={card.title}
             type="button"
             onClick={() => onSelectTab(card.tab)}
-            className={`p-4 rounded-xl border ${card.borderColor} ${card.bgColor} text-left transition-all hover:scale-[1.02] hover:shadow-md cursor-pointer group flex flex-col justify-between`}
+            className="p-5 rounded-xl border border-[#E5E7EB] dark:border-[#262B33] bg-white dark:bg-[#1A1D22] text-left transition-all duration-180 hover:shadow-hover hover:border-[#D0DBFA] dark:hover:border-[#3157E8]/40 cursor-pointer group flex flex-col justify-between"
           >
             <div className="flex items-center justify-between w-full mb-3">
-              <div className={`p-2 rounded-lg bg-white dark:bg-slate-900 shadow-xs ${card.textColor}`}>
+              <div className={`p-2.5 rounded-lg ${card.badgeColor}`}>
                 <Icon className="w-4 h-4" />
               </div>
-              <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+              <ArrowUpRight className="w-4 h-4 text-[#626875] group-hover:text-[#3157E8] transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
             </div>
             <div>
-              <div className={`text-2xl font-black ${card.textColor} tracking-tight`}>
+              <div className={`text-2xl font-bold tracking-tight ${card.accentColor}`}>
                 {card.value}
               </div>
-              <div className="text-xs font-semibold text-slate-800 dark:text-slate-200 mt-0.5">
+              <div className="text-xs font-semibold text-[#111111] dark:text-[#F8F9FA] mt-1">
                 {card.title}
               </div>
-              <div className="text-[11px] text-slate-500 dark:text-slate-400">
+              <div className="text-[11px] text-[#626875] dark:text-[#94A3B8]">
                 {card.subtitle}
               </div>
             </div>

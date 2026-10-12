@@ -48,7 +48,7 @@ export const App: React.FC = () => {
     faculty_department: 'Faculty Department',
     office_hours_default: 'By Appointment',
     ai_tone_preference: 'Warm, Academic, Professional',
-    dark_mode_default: true,
+    dark_mode_default: false,
     email_integration_status: 'Google Workspace',
     calendar_integration_status: 'Google Workspace',
   });
@@ -64,7 +64,7 @@ export const App: React.FC = () => {
 
   // Fetch all user data
   const loadAllData = useCallback(async () => {
-    if (!token || !currentUser) return;
+    if (!currentUser) return;
     setIsLoading(true);
     try {
       const [
@@ -100,13 +100,13 @@ export const App: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [token, currentUser?.id]);
+  }, [currentUser?.id]);
 
   useEffect(() => {
-    if (token && currentUser) {
+    if (currentUser) {
       loadAllData();
     }
-  }, [loadAllData, token, currentUser?.id]);
+  }, [loadAllData, currentUser?.id]);
 
   // Handlers for mutative actions
   const handleToggleEmailRead = async (id: number) => {
@@ -189,18 +189,18 @@ export const App: React.FC = () => {
     showNotification('Preferences saved to Supabase');
   };
 
-  // If loading authentication state, show a clean loading view
+  // If loading authentication state, show clean editorial loading view
   if (isLoadingAuth) {
     return (
-      <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col items-center justify-center space-y-4">
-        <div className="w-10 h-10 border-3 border-brand-500 border-t-transparent rounded-full animate-spin" />
-        <p className="text-xs font-semibold text-slate-400">Verifying secure staff session...</p>
+      <div className="min-h-screen bg-canvas text-ink flex flex-col items-center justify-center space-y-4">
+        <div className="w-10 h-10 border-3 border-cobalt border-t-transparent rounded-full animate-spin" />
+        <p className="text-xs font-semibold text-secondary">Verifying secure staff session...</p>
       </div>
     );
   }
 
   // If unauthenticated, render the Google-only login screen
-  if (!token || !currentUser) {
+  if (!token && !currentUser) {
     return <LoginPage />;
   }
 
@@ -213,7 +213,7 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors">
+    <div className="min-h-screen bg-canvas text-ink flex flex-col font-sans selection:bg-cobalt-light selection:text-cobalt">
       <div className="flex flex-1 overflow-hidden">
         {/* Collapsible Sidebar */}
         <Sidebar
@@ -239,7 +239,7 @@ export const App: React.FC = () => {
 
           {/* Toast Notification */}
           {notification && (
-            <div className="fixed bottom-5 right-5 z-50 bg-slate-900 dark:bg-brand-600 text-white px-4 py-2.5 rounded-xl shadow-lg text-xs font-semibold animate-in slide-in-from-bottom-3 duration-200 flex items-center gap-2">
+            <div className="fixed bottom-5 right-5 z-50 bg-ink text-white px-4 py-2.5 rounded-xl shadow-lg border border-line text-xs font-semibold animate-in slide-in-from-bottom-3 duration-200 flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-400" />
               {notification}
             </div>
@@ -249,7 +249,7 @@ export const App: React.FC = () => {
           <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
             {/* 1. OVERVIEW TAB */}
             {activeTab === 'overview' && (
-              <div className="space-y-6 animate-in fade-in duration-200">
+              <div className="space-y-6 animate-in fade-in duration-180">
                 {/* Daily Briefing Panel */}
                 {briefing && (
                   <DailyBriefingPanel
@@ -297,13 +297,13 @@ export const App: React.FC = () => {
 
             {/* 2. INBOX TAB */}
             {activeTab === 'inbox' && (
-              <div className="space-y-4 animate-in fade-in duration-200">
+              <div className="space-y-4 animate-in fade-in duration-180">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+                    <h2 className="text-xl font-bold text-ink">
                       Faculty Inbox
                     </h2>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                    <p className="text-xs text-secondary">
                       Institutional correspondence streamed from your Google Workspace account.
                     </p>
                   </div>
@@ -330,13 +330,13 @@ export const App: React.FC = () => {
 
             {/* 3. AI DRAFTS TAB */}
             {activeTab === 'drafts' && (
-              <div className="space-y-4 animate-in fade-in duration-200">
+              <div className="space-y-4 animate-in fade-in duration-180">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+                    <h2 className="text-xl font-bold text-ink">
                       AI Draft Proposals & Review
                     </h2>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                    <p className="text-xs text-secondary">
                       Human-in-the-loop: inspect, customize tone, approve, or save directly to your Gmail account.
                     </p>
                   </div>
@@ -363,13 +363,13 @@ export const App: React.FC = () => {
 
             {/* 4. CALENDAR TAB */}
             {activeTab === 'calendar' && (
-              <div className="space-y-4 animate-in fade-in duration-200">
+              <div className="space-y-4 animate-in fade-in duration-180">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+                    <h2 className="text-xl font-bold text-ink">
                       Academic Schedule & Timeline
                     </h2>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                    <p className="text-xs text-secondary">
                       Lectures, office hours, and university sessions synchronized with Google Calendar.
                     </p>
                   </div>
@@ -393,13 +393,13 @@ export const App: React.FC = () => {
 
             {/* 5. TASKS TAB */}
             {activeTab === 'tasks' && (
-              <div className="space-y-4 animate-in fade-in duration-200">
+              <div className="space-y-4 animate-in fade-in duration-180">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+                    <h2 className="text-xl font-bold text-ink">
                       Faculty Checklist & Deliverables
                     </h2>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                    <p className="text-xs text-secondary">
                       Track grading deadlines, NSF reports, and committee assignments.
                     </p>
                   </div>
@@ -429,13 +429,13 @@ export const App: React.FC = () => {
 
             {/* 6. ACTIVITY TAB */}
             {activeTab === 'activity' && (
-              <div className="space-y-4 animate-in fade-in duration-200">
+              <div className="space-y-4 animate-in fade-in duration-180">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+                    <h2 className="text-xl font-bold text-ink">
                       System Activity & Audit Log
                     </h2>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                    <p className="text-xs text-secondary">
                       Tamper-evident audit trail of briefings, drafts, and staff actions.
                     </p>
                   </div>
@@ -455,7 +455,7 @@ export const App: React.FC = () => {
 
             {/* 7. SETTINGS TAB */}
             {activeTab === 'settings' && (
-              <div className="space-y-4 animate-in fade-in duration-200">
+              <div className="space-y-4 animate-in fade-in duration-180">
                 <SettingsView
                   settings={settings}
                   isLoading={isLoading}

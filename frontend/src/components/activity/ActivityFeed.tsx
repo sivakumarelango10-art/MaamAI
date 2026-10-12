@@ -21,16 +21,16 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({ activities, isLoadin
     switch (category.toLowerCase()) {
       case 'ai_draft':
       case 'drafts':
-        return <FileText className="w-4 h-4 text-indigo-500" />;
+        return <FileText className="w-4 h-4 text-cobalt" />;
       case 'calendar':
-        return <Calendar className="w-4 h-4 text-sky-500" />;
+        return <Calendar className="w-4 h-4 text-cobalt" />;
       case 'email':
-        return <Mail className="w-4 h-4 text-amber-500" />;
+        return <Mail className="w-4 h-4 text-amber-600" />;
       case 'auth':
       case 'security':
-        return <ShieldCheck className="w-4 h-4 text-emerald-500" />;
+        return <ShieldCheck className="w-4 h-4 text-emerald-600" />;
       default:
-        return <CheckCircle className="w-4 h-4 text-slate-400" />;
+        return <CheckCircle className="w-4 h-4 text-secondary" />;
     }
   };
 
@@ -49,28 +49,28 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({ activities, isLoadin
 
   return (
     <div className="space-y-3">
-      <div className="border border-slate-200/80 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900 shadow-xs divide-y divide-slate-100 dark:divide-slate-800">
+      <div className="border border-line rounded-xl overflow-hidden bg-white shadow-xs divide-y divide-line">
         {activities.map((item) => (
           <div
             key={item.id}
-            className="p-4 flex items-start gap-3 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
+            className="p-4 flex items-start gap-3 hover:bg-canvas/50 transition-colors duration-180"
           >
-            <div className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 flex-shrink-0 mt-0.5">
+            <div className="p-2 rounded-lg bg-canvas flex-shrink-0 mt-0.5 border border-line">
               {getCategoryIcon(item.category)}
             </div>
 
             <div className="flex-1 min-w-0 space-y-1">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">
+                <h4 className="text-xs sm:text-sm font-bold text-ink truncate">
                   {item.title}
                 </h4>
-                <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
-                  <Clock className="w-3 h-3" />
+                <div className="flex items-center gap-1.5 text-[11px] text-secondary">
+                  <Clock className="w-3 h-3 text-secondary" />
                   <span>{item.timestamp}</span>
                 </div>
               </div>
 
-              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+              <p className="text-xs text-secondary leading-relaxed">
                 {item.description}
               </p>
 

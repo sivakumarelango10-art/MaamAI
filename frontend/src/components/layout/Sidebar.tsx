@@ -43,7 +43,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     label: string;
     icon: React.ComponentType<{ className?: string }>;
     badge?: number;
-    badgeVariant?: 'primary' | 'amber' | 'rose';
+    badgeVariant?: 'cobalt' | 'amber' | 'rose';
   }[] = [
     {
       id: 'overview',
@@ -62,14 +62,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
       label: 'AI Drafts',
       icon: Sparkles,
       badge: badgeCounts.drafts,
-      badgeVariant: 'primary',
+      badgeVariant: 'cobalt',
     },
     {
       id: 'calendar',
       label: 'Calendar',
       icon: Calendar,
       badge: badgeCounts.calendar,
-      badgeVariant: 'primary',
+      badgeVariant: 'cobalt',
     },
     {
       id: 'tasks',
@@ -96,40 +96,42 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   const sidebarContent = (
-    <div className="flex flex-col h-full bg-white dark:bg-slate-900 border-r border-slate-200/80 dark:border-slate-800 transition-colors">
+    <div className="flex flex-col h-full bg-white dark:bg-[#13161A] border-r border-[#E5E7EB] dark:border-[#262B33] transition-colors">
       {/* Brand Header */}
-      <div className="p-4 flex items-center justify-between border-b border-slate-100 dark:border-slate-800">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-10 h-10 rounded-xl bg-white p-0.5 shadow-md shadow-brand-500/20 ring-1 ring-brand-500/20 flex-shrink-0 flex items-center justify-center overflow-hidden">
-            <img src="/logo.png" alt="Ma’amAI" className="w-full h-full object-contain" />
+      <div className="p-4 flex items-center justify-between border-b border-[#E5E7EB] dark:border-[#262B33]">
+        <div className="flex items-center gap-3 overflow-hidden">
+          <div className="w-9 h-9 rounded-xl bg-white p-0.5 border border-[#E5E7EB] dark:border-[#262B33] shadow-xs flex-shrink-0 flex items-center justify-center">
+            <img
+              src="/logo.png"
+              alt="Ma'amAI"
+              className="w-8 h-8 rounded-lg object-contain"
+            />
           </div>
-          {(!isCollapsed || mobileOpen) && (
+          {!isCollapsed && (
             <div className="min-w-0">
-              <span className="font-extrabold text-base tracking-tight text-slate-900 dark:text-white flex items-center gap-1">
-                Ma’am<span className="text-brand-600 dark:text-brand-400">AI</span>
+              <span className="text-base font-extrabold tracking-tight text-[#111111] dark:text-white block truncate">
+                Ma’amAI
               </span>
-              <span className="text-[10px] text-slate-400 font-medium block uppercase tracking-wider">
-                Staff Assistant
+              <span className="text-[10px] text-[#626875] dark:text-[#94A3B8] font-medium tracking-wide uppercase block truncate">
+                Academic Executive
               </span>
             </div>
           )}
         </div>
 
         {/* Mobile close button */}
-        {mobileOpen && (
-          <button
-            type="button"
-            onClick={onCloseMobile}
-            aria-label="Close menu"
-            className="md:hidden p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={onCloseMobile}
+          aria-label="Close navigation"
+          className="md:hidden p-1.5 rounded-lg text-[#626875] hover:text-[#111111] hover:bg-[#F7F8FA] dark:hover:bg-[#1A1D22]"
+        >
+          <X className="w-5 h-5" />
+        </button>
       </div>
 
       {/* Navigation List */}
-      <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
+      <nav className="flex-1 p-2.5 space-y-1 overflow-y-auto">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
@@ -139,29 +141,31 @@ export const Sidebar: React.FC<SidebarProps> = ({
               type="button"
               onClick={() => handleNavClick(item.id)}
               title={isCollapsed ? item.label : undefined}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all group ${
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all group select-none text-left ${
                 isActive
-                  ? 'bg-brand-50 dark:bg-brand-950/60 text-brand-700 dark:text-brand-300 font-semibold shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100/80 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-100'
-              } ${isCollapsed && !mobileOpen ? 'justify-center px-2' : ''}`}
+                  ? 'bg-[#EEF2FF] text-[#3157E8] dark:bg-[#16203D] dark:text-[#6085FA] font-semibold shadow-2xs'
+                  : 'text-[#626875] hover:text-[#111111] hover:bg-[#F7F8FA] dark:text-[#94A3B8] dark:hover:text-white dark:hover:bg-[#1A1D22]'
+              }`}
             >
               <Icon
                 className={`w-4 h-4 flex-shrink-0 transition-colors ${
                   isActive
-                    ? 'text-brand-600 dark:text-brand-400'
-                    : 'text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300'
+                    ? 'text-[#3157E8] dark:text-[#6085FA]'
+                    : 'text-[#626875] group-hover:text-[#111111] dark:text-[#94A3B8] dark:group-hover:text-white'
                 }`}
               />
 
-              {(!isCollapsed || mobileOpen) && (
+              {!isCollapsed && (
                 <>
-                  <span className="flex-1 text-left truncate">{item.label}</span>
+                  <span className="flex-1 truncate">{item.label}</span>
                   {item.badge !== undefined && item.badge > 0 && (
                     <span
-                      className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 ${
-                        isActive
-                          ? 'bg-brand-200 dark:bg-brand-800 text-brand-900 dark:text-brand-100'
-                          : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        item.badgeVariant === 'amber'
+                          ? 'bg-[#FFFBEB] text-[#B45309] border border-[#FDE68A] dark:bg-[#362208] dark:text-[#FCD34D]'
+                          : item.badgeVariant === 'rose'
+                          ? 'bg-[#FEF2F2] text-[#B91C1C] border border-[#FECACA] dark:bg-[#3D1414] dark:text-[#FCA5A5]'
+                          : 'bg-[#EEF2FF] text-[#3157E8] border border-[#D0DBFA] dark:bg-[#16203D] dark:text-[#6085FA]'
                       }`}
                     >
                       {item.badge}
@@ -174,33 +178,37 @@ export const Sidebar: React.FC<SidebarProps> = ({
         })}
       </nav>
 
-      {/* Isolation Status Footer */}
-      {(!isCollapsed || mobileOpen) && (
-        <div className="p-3 mx-2 mb-2 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800 text-[11px] text-slate-500 dark:text-slate-400">
-          <div className="flex items-center gap-1.5 font-semibold text-slate-700 dark:text-slate-300 mb-0.5">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-            <span>Strict User Isolation</span>
+      {/* Verified Workspace Footer */}
+      {!isCollapsed && (
+        <div className="p-3 border-t border-[#E5E7EB] dark:border-[#262B33] bg-[#F7F8FA]/60 dark:bg-[#13161A]">
+          <div className="flex items-center gap-2 text-xs text-[#626875] dark:text-[#94A3B8]">
+            <ShieldCheck className="w-4 h-4 text-[#16803D] flex-shrink-0" />
+            <div className="min-w-0">
+              <span className="font-semibold text-[#111111] dark:text-white block text-[11px] truncate">
+                Isolated Workspace
+              </span>
+              <span className="text-[10px] text-[#626875] dark:text-[#94A3B8] block truncate">
+                End-to-end Protected
+              </span>
+            </div>
           </div>
-          <p className="text-[10px] text-slate-500 leading-tight">
-            Tokens and records scoped strictly per staff member.
-          </p>
         </div>
       )}
 
-      {/* Collapse Desktop Toggle */}
-      <div className="hidden md:block p-2 border-t border-slate-100 dark:border-slate-800">
+      {/* Collapse desktop toggle */}
+      <div className="hidden md:flex items-center justify-between p-2.5 border-t border-[#E5E7EB] dark:border-[#262B33]">
         <button
           type="button"
           onClick={onToggleCollapse}
-          className="w-full flex items-center justify-center p-2 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-xs"
-          title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          className="w-full flex items-center justify-center p-2 rounded-lg text-[#626875] hover:text-[#111111] hover:bg-[#F7F8FA] dark:text-[#94A3B8] dark:hover:text-white dark:hover:bg-[#1A1D22] transition-colors"
         >
           {isCollapsed ? (
             <ChevronRight className="w-4 h-4" />
           ) : (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 text-xs font-medium">
               <ChevronLeft className="w-4 h-4" />
-              <span className="text-xs">Collapse</span>
+              <span>Collapse Sidebar</span>
             </div>
           )}
         </button>
@@ -212,21 +220,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <>
       {/* Desktop Persistent Sidebar */}
       <aside
-        className={`hidden md:block flex-shrink-0 transition-all duration-300 ease-in-out ${
-          isCollapsed ? 'w-16' : 'w-64'
+        className={`hidden md:flex flex-col flex-shrink-0 h-screen sticky top-0 z-40 transition-all duration-200 ${
+          isCollapsed ? 'w-18' : 'w-64'
         }`}
       >
         {sidebarContent}
       </aside>
 
-      {/* Mobile Off-canvas Drawer */}
+      {/* Mobile Backdrop & Drawer */}
       {mobileOpen && (
-        <div className="fixed inset-0 z-50 md:hidden flex">
+        <div className="md:hidden fixed inset-0 z-50 flex">
           <div
-            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
+            className="fixed inset-0 bg-black/40 backdrop-blur-xs transition-opacity"
             onClick={onCloseMobile}
           />
-          <div className="relative w-64 max-w-[80vw] h-full shadow-2xl z-10 animate-in slide-in-from-left duration-200">
+          <div className="relative w-64 max-w-xs h-full z-10 shadow-xl">
             {sidebarContent}
           </div>
         </div>

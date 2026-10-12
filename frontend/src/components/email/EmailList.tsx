@@ -48,8 +48,8 @@ export const EmailList: React.FC<EmailListProps> = ({
   if (emails.length === 0) {
     return (
       <EmptyState
-        title="No emails found"
-        description="Your faculty mailbox is currently clean. Demo emails will appear here."
+        title="No correspondence found"
+        description="Your faculty mailbox is currently clean. Connected Google Workspace messages will appear here."
       />
     );
   }
@@ -58,16 +58,16 @@ export const EmailList: React.FC<EmailListProps> = ({
     <div className="space-y-4">
       {/* Category Filter Pills */}
       <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
-        <Filter className="w-3.5 h-3.5 text-slate-400 mr-1 flex-shrink-0" />
+        <Filter className="w-3.5 h-3.5 text-[#626875] mr-1 flex-shrink-0" />
         {categories.map((cat) => (
           <button
             key={cat}
             type="button"
             onClick={() => setCategoryFilter(cat)}
-            className={`px-3 py-1 rounded-lg font-medium transition-colors whitespace-nowrap ${
+            className={`px-3 py-1 rounded-lg font-medium transition-colors whitespace-nowrap cursor-pointer ${
               categoryFilter === cat
-                ? 'bg-brand-600 text-white shadow-xs'
-                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                ? 'bg-[#3157E8] text-white shadow-2xs'
+                : 'bg-white dark:bg-[#1A1D22] text-[#626875] dark:text-[#94A3B8] border border-[#E5E7EB] dark:border-[#262B33] hover:text-[#111111] dark:hover:text-white'
             }`}
           >
             {cat}
@@ -76,7 +76,7 @@ export const EmailList: React.FC<EmailListProps> = ({
       </div>
 
       {/* List */}
-      <div className="divide-y divide-slate-100 dark:divide-slate-800 border border-slate-200/80 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900 shadow-xs">
+      <div className="divide-y divide-[#E5E7EB] dark:divide-[#262B33] border border-[#E5E7EB] dark:border-[#262B33] rounded-xl overflow-hidden bg-white dark:bg-[#1A1D22] shadow-card">
         {filteredEmails.map((email) => {
           const isGeneratingThis = isGeneratingDraftId === email.id;
 
@@ -84,10 +84,10 @@ export const EmailList: React.FC<EmailListProps> = ({
             <div
               key={email.id}
               onClick={() => setSelectedEmail(email)}
-              className={`p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer transition-colors ${
+              className={`p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer transition-colors ${
                 !email.is_read
-                  ? 'bg-brand-50/30 dark:bg-brand-950/20 font-medium'
-                  : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                  ? 'bg-[#EEF2FF]/40 dark:bg-[#16203D]/20 font-medium'
+                  : 'hover:bg-[#F7F8FA] dark:hover:bg-[#13161A]'
               }`}
             >
               {/* Left Column: Read marker & Info */}
@@ -98,103 +98,98 @@ export const EmailList: React.FC<EmailListProps> = ({
                     e.stopPropagation();
                     onToggleRead(email.id);
                   }}
-                  className="mt-1 text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors flex-shrink-0"
                   title={email.is_read ? 'Mark unread' : 'Mark read'}
+                  aria-label={email.is_read ? 'Mark unread' : 'Mark read'}
+                  className="mt-1 p-1 rounded-md text-[#626875] hover:text-[#3157E8] transition-colors"
                 >
                   {email.is_read ? (
-                    <MailOpen className="w-4 h-4 text-slate-400" />
+                    <MailOpen className="w-4 h-4 text-[#9CA3AF]" />
                   ) : (
-                    <Mail className="w-4 h-4 text-brand-600 dark:text-brand-400 font-bold" />
+                    <Mail className="w-4 h-4 text-[#3157E8]" />
                   )}
                 </button>
 
                 <div className="min-w-0 flex-1 space-y-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
+                    <span className="text-xs font-bold text-[#111111] dark:text-white truncate">
                       {email.sender_name}
                     </span>
-                    <span className="text-[11px] text-slate-400 dark:text-slate-500 hidden sm:inline">
-                      • {email.sender_email}
-                    </span>
-                    <Badge
-                      variant={email.priority === 'high' ? 'high' : 'medium'}
-                      size="sm"
-                    >
-                      {email.priority}
+                    <Badge variant={email.priority === 'high' ? 'high' : 'medium'} size="sm">
+                      {email.priority.toUpperCase()}
                     </Badge>
-                    <Badge variant="purple" size="sm">
+                    <Badge variant="cobalt" size="sm">
                       {email.category}
                     </Badge>
-                    <Badge variant="demo" size="sm">
-                      {email.demo_label}
-                    </Badge>
+                    {email.has_draft && (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#3157E8] bg-[#EEF2FF] dark:bg-[#16203D] px-2 py-0.5 rounded-full border border-[#D0DBFA] dark:border-[#203264]">
+                        <CheckCircle2 className="w-3 h-3 text-[#3157E8]" />
+                        Draft Prepared
+                      </span>
+                    )}
                   </div>
 
-                  <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate">
+                  <h4 className="text-sm font-semibold text-[#111111] dark:text-white truncate">
                     {email.subject}
                   </h4>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1">
+                  <p className="text-xs text-[#626875] dark:text-[#94A3B8] truncate leading-relaxed">
                     {email.snippet}
                   </p>
                 </div>
               </div>
 
-              {/* Right Column: Time & Quick Action */}
-              <div className="flex items-center justify-between sm:justify-end gap-3 flex-shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-slate-800">
-                <span className="text-[11px] text-slate-400 flex items-center gap-1">
+              {/* Right Column: Actions & Time */}
+              <div className="flex items-center gap-2.5 sm:self-center flex-shrink-0">
+                <div className="flex items-center gap-1 text-[11px] text-[#626875] dark:text-[#94A3B8]">
                   <Clock className="w-3 h-3" />
-                  {email.received_at}
-                </span>
-
-                <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                  {email.has_draft ? (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onViewDraft()}
-                      className="text-xs text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800"
-                      icon={<CheckCircle2 className="w-3.5 h-3.5" />}
-                    >
-                      Draft Ready
-                    </Button>
-                  ) : (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      isLoading={isGeneratingThis}
-                      onClick={() => onGenerateDraft(email.id)}
-                      className="text-xs text-brand-600 dark:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-950/40"
-                      icon={<Sparkles className="w-3.5 h-3.5 text-amber-500" />}
-                    >
-                      AI Reply
-                    </Button>
-                  )}
+                  <span>{email.received_at}</span>
                 </div>
 
-                <ChevronRight className="w-4 h-4 text-slate-400 hidden sm:block" />
+                {!email.has_draft && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    isLoading={isGeneratingThis}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onGenerateDraft(email.id);
+                    }}
+                    icon={<Sparkles className="w-3 h-3 text-[#3157E8]" />}
+                    className="text-xs py-1 px-2.5"
+                  >
+                    Generate Draft
+                  </Button>
+                )}
+
+                {email.has_draft && (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onViewDraft();
+                    }}
+                    className="text-xs py-1 px-2.5"
+                  >
+                    View Draft
+                  </Button>
+                )}
+
+                <ChevronRight className="w-4 h-4 text-[#9CA3AF] hidden sm:block" />
               </div>
             </div>
           );
         })}
       </div>
 
-      {/* Detail Modal */}
-      {selectedEmail && (
-        <EmailDetailModal
-          email={selectedEmail}
-          onClose={() => setSelectedEmail(null)}
-          onToggleRead={(id) => {
-            onToggleRead(id);
-            setSelectedEmail((prev) => (prev ? { ...prev, is_read: !prev.is_read } : null));
-          }}
-          onGenerateDraft={(id) => {
-            onGenerateDraft(id);
-            setSelectedEmail((prev) => (prev ? { ...prev, has_draft: true } : null));
-          }}
-          onViewDraft={onViewDraft}
-          isGeneratingDraft={isGeneratingDraftId === selectedEmail.id}
-        />
-      )}
+      {/* Modal View for Email Details */}
+      <EmailDetailModal
+        email={selectedEmail}
+        onClose={() => setSelectedEmail(null)}
+        onToggleRead={onToggleRead}
+        onGenerateDraft={onGenerateDraft}
+        onViewDraft={onViewDraft}
+        isGeneratingDraft={isGeneratingDraftId === selectedEmail?.id}
+      />
     </div>
   );
 };
