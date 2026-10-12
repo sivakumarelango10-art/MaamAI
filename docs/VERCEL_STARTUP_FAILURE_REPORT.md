@@ -40,6 +40,9 @@
 | `backend/app/config.py` | Stripped enclosing quotes and whitespace in `get_database_url()` and `get_direct_url()`; improved production security validation to cleanly reject empty, missing, or SQLite URLs. | Prevents syntax errors caused by copy-pasted quoted environment variables in Vercel UI; enforces production secret hygiene. |
 | `backend/app/services/google_service.py` | Replaced `"placeholder_client_id"` fallback with a strict check raising `ValueError("Google OAuth Client ID is not configured...")` if client ID is missing or placeholder. Enforced credential validation in `exchange_code_for_tokens` and `refresh_google_access_token`. | Eliminates invalid placeholder client IDs; provides clear, actionable configuration feedback. |
 | `backend/app/routers/auth.py` | Wrapped `build_google_auth_url(state)` in `try...except ValueError` returning `503 Service Unavailable` with a safe configuration message. | Allows the auth router to return a structured HTTP 503 error if OAuth credentials are missing, without crashing the server. |
+| `backend/main.py` | Created standard root entrypoint re-exporting `app` from `app.main`. | Allows Vercel's standard FastAPI service runner to locate `main:app` directly within `backend/`. |
+| `backend/index.py` | Created fallback entrypoint re-exporting `app` from `app.main`. | Guarantees compatibility if Vercel attempts default `index.py` resolution. |
+| `vercel.json` | Updated backend service entrypoint from `app.main:app` to `main:app`. | Conforms to official Vercel multi-service FastAPI deployment specification. |
 | `backend/tests/test_production_startup.py` | Added 12 regression tests verifying production startup, DDL bypass, secret validation, database failure resilience, OAuth URL generation, and allowlist enforcement. | Guards against regressions across cold start, security validation, and Google OAuth behaviors. |
 
 ---
