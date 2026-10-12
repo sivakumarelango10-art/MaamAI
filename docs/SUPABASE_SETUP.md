@@ -42,13 +42,13 @@ To prevent connection exhaustion:
 - Append `?pgbouncer=true` if using transaction pooling.
 - For running Alembic schema migrations (DDL), use the **Session Pooler** on port **`5432`** or the direct connection.
 
-### Connection String Format
+### Connection String Format (Project: `inrrhqnkvwublklehivy`)
 ```env
-# Production Runtime on Vercel (Supabase Transaction Pooler - IPv4 Compatible)
-DATABASE_URL=postgresql://postgres.[PROJECT-REF]:[YOUR-PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres?sslmode=require
+# Production Runtime on Vercel (Supabase Transaction Pooler - IPv4 Compatible - Port 6543)
+DATABASE_URL=postgresql://postgres.inrrhqnkvwublklehivy:[YOUR-PASSWORD]@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres?pgbouncer=true
 
-# Direct / Migration URL (Used when running Alembic migrations)
-DIRECT_URL=postgresql://postgres.[PROJECT-REF]:[YOUR-PASSWORD]@aws-0-[REGION].pooler.supabase.com:5432/postgres?sslmode=require
+# Session Pooler / Migration URL (Used when running Alembic migrations - Port 5432)
+DIRECT_URL=postgresql://postgres.inrrhqnkvwublklehivy:[YOUR-PASSWORD]@aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres
 ```
 
 > **Note on SQLAlchemy**: If your Supabase URI begins with `postgres://`, MaamAI's `get_database_url()` in `backend/app/config.py` automatically normalizes it to `postgresql://` to maintain compatibility with SQLAlchemy 2.0 and `psycopg2`.
