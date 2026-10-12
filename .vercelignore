@@ -1,0 +1,39 @@
+# ==============================================================================
+# Vercel Deployment Ignore - Prevent build bloat and secret leakage
+# ==============================================================================
+.git
+.github
+.venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+
+# Local development databases
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+backend/maamai.db
+maamai.db
+
+# Virtual environments
+backend/.venv/
+.venv/
+venv/
+
+# Local test suites & artifacts
+backend/tests/
+backend/.pytest_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Documentation and operational scripts (not needed by runtime function)
+docs/
+scripts/
+
+# Local environment files
+.env
+.env.*
+!.env.example
