@@ -1,0 +1,180 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id              Int               @id @default(autoincrement())
+  email           String            @unique
+  username        String            @unique
+  hashedPassword  String            @map("hashed_password")
+  fullName        String            @map("full_name")
+  role            String
+  department      String
+  avatarInitials  String            @default("ST") @map("avatar_initials")
+  isActive        Boolean           @default(true) @map("is_active")
+  createdAt       DateTime          @default(now()) @map("created_at")
+
+  briefings       Briefing[]
+  emails          Email[]
+  aiDrafts        AIDraft[]
+  calendarEvents  CalendarEvent[]
+  tasks           Task[]
+  activityLogs    ActivityLog[]
+  oauthConnections OAuthConnection[]
+  settings        SystemSetting[]
+  revokedTokens   RevokedToken[]
+
+  @@map("users")
+}
+
+model OAuthConnection {
+  id                   Int       @id @default(autoincrement())
+  userId               Int       @map("user_id")
+  provider             String    @default("google")
+  emailAccount         String    @map("email_account")
+  accessToken          String?   @map("access_token")
+  refreshToken         String?   @map("refresh_token")
+  tokenExpiry          DateTime? @map("token_expiry")
+  scopes               String?   @default("https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/calendar")
+  isConnected          Boolean   @default(false) @map("is_connected")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("oauth_connections")
+}
+
+model Briefing {
+  id            Int      @id @default(autoincrement())
+  userId        Int      @map("user_id")
+  date          String
+  greeting      String
+  quote         String?
+  summary       String
+  keyFocus      String   @map("key_focus")
+  urgentCount   Int      @default(0) @map("urgent_count")
+  meetingsCount Int      @default(0) @map("meetings_count")
+  tasksCount    Int      @default(0) @map("tasks_count")
+  generatedAt   DateTime @default(now()) @map("generated_at")
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("briefings")
+}
+
+model Email {
+  id          Int       @id @default(autoincrement())
+  userId      Int       @map("user_id")
+  senderName  String    @map("sender_name")
+  senderEmail String    @map("sender_email")
+  subject     String
+  snippet     String
+  body        String
+  category    String    @default("Student Inquiries")
+  priority    String    @default("medium")
+  isRead      Boolean   @default(false) @map("is_read")
+  hasDraft    Boolean   @default(false) @map("has_draft")
+  receivedAt  String    @map("received_at")
+  demoLabel   String    @default("[Demo Data - Sample Faculty Inbox]") @map("demo_label")
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  drafts      AIDraft[]
+
+  @@map("emails")
+}
+
+model AIDraft {
+  id              Int      @id @default(autoincrement())
+  userId          Int      @map("user_id")
+  emailId         Int?     @map("email_id")
+  recipient       String
+  subject         String
+  body            String
+  tone            String   @default("Professional & Encouraging")
+  status          String   @default("pending_review")
+  confidenceScore Float    @default(0.94) @map("confidence_score")
+  createdAt       DateTime @default(now()) @map("created_at")
+  demoLabel       String   @default("[Demo - AI Proposed Response]") @map("demo_label")
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  email           Email?   @relation(fields: [emailId], references: [id], onDelete: Cascade)
+
+  @@map("ai_drafts")
+}
+
+model CalendarEvent {
+  id            Int      @id @default(autoincrement())
+  userId        Int      @map("user_id")
+  title         String
+  startTime     String   @map("start_time")
+  endTime       String   @map("end_time")
+  dateStr       String   @map("date_str")
+  location      String   @default("Turing Hall 312")
+  eventType     String   @default("lecture") @map("event_type")
+  attendeeCount Int      @default(1) @map("attendee_count")
+  notes         String?
+  demoLabel     String   @default("[Demo Data - Academic Schedule]") @map("demo_label")
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("calendar_events")
+}
+
+model Task {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @map("user_id")
+  title       String
+  description String?
+  category    String   @default("Academic")
+  dueDate     String   @map("due_date")
+  priority    String   @default("medium")
+  status      String   @default("pending")
+  demoLabel   String   @default("[Demo Data - Faculty Checklist]") @map("demo_label")
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("tasks")
+}
+
+model ActivityLog {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @map("user_id")
+  title       String
+  description String
+  category    String   @default("system")
+  timestamp   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("activity_logs")
+}
+
+model SystemSetting {
+  id     Int    @id @default(autoincrement())
+  userId Int    @map("user_id")
+  key    String
+  value  String
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("system_settings")
+}
+
+model RevokedToken {
+  id        Int      @id @default(autoincrement())
+  tokenJti  String   @unique @map("token_jti")
+  userId    Int?     @map("user_id")
+  revokedAt DateTime @default(now()) @map("revoked_at")
+  expiresAt DateTime @map("expires_at")
+
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("revoked_tokens")
+}
