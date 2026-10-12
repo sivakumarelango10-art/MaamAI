@@ -1,7 +1,13 @@
+from pathlib import Path
 from pydantic_settings import BaseSettings
 from pydantic import model_validator
 from typing import List
 from cryptography.fernet import Fernet
+
+# Resolve workspace root directory reliably: F:\Agent
+# backend/app/config.py -> app -> backend -> root (F:\Agent)
+ROOT_DIR = Path(__file__).resolve().parent.parent.parent
+ROOT_ENV_FILE = ROOT_DIR / ".env"
 
 DEFAULT_DEV_JWT_SECRET = "maamai_production_grade_jwt_secret_key_change_in_production"
 DEFAULT_DEV_ENCRYPTION_KEY = "cKNExS5eKAKDtFx8KvadVCS_RMLC8N3r9_raEO27mdo="
@@ -36,13 +42,27 @@ class Settings(BaseSettings):
     ENABLE_GMAIL_SYNC: bool = False
     ENABLE_GCAL_SYNC: bool = False
 
-    model_config = {"env_file": ".env", "extra": "ignore"}
+    # AI Provider configuration
+    AI_PROVIDER: str = "gemini_free"
+    GEMINI_API_KEY: str = ""
+    OLLAMA_BASE_URL: str = "http://localhost:11434"
+
+    model_config = {
+        "env_file": str(ROOT_ENV_FILE) if ROOT_ENV_FILE.exists() else None,
+        "env_file_encoding": "utf-8",
+        "extra": "ignore",
+    }
 
     def get_database_url(self) -> str:
         """Normalize database connection URL for SQLAlchemy compatibility."""
         url = self.DATABASE_URL
         if url.startswith("postgres://"):
             url = url.replace("postgres://", "postgresql://", 1)
+        elif url.startswith("sqlite:///./"):
+            # Resolve relative SQLite database path to the canonical workspace root
+            rel_name = url.replace("sqlite:///./", "", 1)
+            abs_db = (ROOT_DIR / rel_name).resolve()
+            url = f"sqlite:///{abs_db.as_posix()}"
         return url
 
     @model_validator(mode="after")
