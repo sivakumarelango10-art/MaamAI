@@ -10,15 +10,12 @@ class UserBase(BaseModel):
     role: str
     department: str
     avatar_initials: str = "ST"
+    picture_url: Optional[str] = None
 
-class UserRegister(UserBase):
+class GoogleExchangeRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    password: str = Field(..., min_length=8, description="Password must be at least 8 characters")
-
-class UserLogin(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    username_or_email: str
-    password: str
+    code: str
+    state: str
 
 class UserResponse(UserBase):
     model_config = ConfigDict(from_attributes=True)
@@ -38,7 +35,7 @@ class OAuthStatusResponse(BaseModel):
     provider: str = "google"
     scopes: Optional[str] = None
     last_synced: Optional[datetime.datetime] = None
-    demo_mode: bool = True
+    demo_mode: bool = False
 
 # Health Check Schema
 class HealthCheckResponse(BaseModel):

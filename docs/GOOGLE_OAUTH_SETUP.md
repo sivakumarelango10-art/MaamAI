@@ -1,99 +1,118 @@
-# MaamAI Phase 2: Google OAuth & Calendar/Gmail Integration Guide
+# Ma’amAI — Google Cloud Console & OAuth 2.0 Integration Guide
+## Production Configuration for Authorized Staff Accounts
 
-This document outlines the security architecture, Google Cloud Console setup, encryption requirements, and multi-user isolation policies for future Google Workspace integrations in **MaamAI**.
-
----
-
-## 1. Multi-User Google Account Isolation Policy
-
-MaamAI supports two independent academic staff members:
-- **Dr. Aris Vance** (`aris.vance@university.edu`)
-- **Dr. Priya Sharma** (`priya.sharma@university.edu`)
-
-### Mandatory Security Constraints
-1. **Zero Shared Credentials**: Staff members **never** share OAuth connections, access tokens, or refresh tokens.
-2. **User-Scoped Database Isolation**: Every OAuth record in the `oauth_connections` table is foreign-keyed to `users.id` with a unique constraint on `(user_id, provider)`.
-3. **No Automatic Actions**: The application must **never** send an email or create/edit a calendar event autonomously. All AI-generated drafts and proposed calendar events require explicit, manual user review and approval in the dashboard.
-4. **Never Ask for Google Passwords**: All Google authentication must use Google's official OAuth 2.0 Authorization Code flow with CSRF protection (`state` token).
+This guide provides instructions for configuring Google Cloud Console for **Ma’amAI**, enabling real Google authentication, Gmail integration, and Google Calendar synchronization for the two authorized staff members.
 
 ---
 
-## 2. Token Security: Authenticated Encryption at Rest
+## 1. Application-Authorized Accounts & Strict Allowlist
 
-In accordance with Phase 2 security hardening, plaintext OAuth tokens are **never** stored in the database or exposed in API responses.
+Ma’amAI enforces a server-side allowlist restricting access strictly to:
 
-### Cryptographic Foundation
-- **Algorithm**: Authenticated Encryption using **Fernet** (symmetric AES-128-CBC encryption combined with HMAC-SHA256 authentication).
-- **Key Storage**: The encryption key is loaded from the environment variable `OAUTH_TOKEN_ENCRYPTION_KEY`.
-- **Validation**: At production startup, `Settings.validate_production_secrets()` validates that the key exists and conforms to 32 URL-safe base64-encoded bytes. If missing or invalid, the backend halts immediately with a fatal configuration error.
-- **API Sanitization**: All endpoints under `/api/oauth/google/*` redact sensitive tokens. Only status indicators (`is_connected`, `provider`, `email_account`, `scopes`) are exposed to the browser.
+1. **`sivakumarelango10@gmail.com`**
+2. **`avishka.s@kalvium.com`**
+
+Any other Google account will receive an immediate HTTP 403 Forbidden with the exact message:
+> *"Access is restricted to the two authorized Ma’amAI accounts. Please sign in using an approved Google account."*
+
+No database record or session token is created for unauthorized accounts.
 
 ---
 
-## 3. Step-by-Step Google Cloud Console Setup (₹0 Budget)
+## 2. Google Cloud Platform Setup Instructions (Strictly ₹0 Budget)
 
-Google Cloud OAuth 2.0 authentication is completely free of charge. No billing account or credit card is required.
+Google Cloud OAuth 2.0, Gmail API, and Calendar API are completely free of charge. No paid tier, credit card, or billing account is required.
 
-### Step 1: Create a Google Cloud Project
-1. Visit the [Google Cloud Console](https://console.cloud.google.com/).
-2. Click the project dropdown at the top left and click **New Project**.
-3. Name the project `MaamAI-Assistant` and click **Create**.
+### Step 1: Create or Select GCP Project
+1. Open the [Google Cloud Console](https://console.cloud.google.com/).
+2. Click the project dropdown in the top navigation bar and select **New Project**.
+3. Set **Project name**: `MaamAI-Production`.
+4. Click **Create** and ensure the project is active.
 
-### Step 2: Configure the OAuth Consent Screen
-1. In the sidebar, navigate to **APIs & Services** -> **OAuth consent screen**.
-2. Select **User Type**:
-   - If using Google Workspace for Education: Choose **Internal** (recommended; automatically restricts access to institutional faculty).
-   - If using personal Gmail accounts: Choose **External**.
-3. Fill in the App Information:
-   - **App name**: `MaamAI Academic Assistant`
-   - **User support email**: Select your developer email.
-   - **Developer contact information**: Provide your contact email.
-4. Click **Save and Continue**.
+### Step 2: Enable Required Google APIs
+In the sidebar, navigate to **APIs & Services** -> **Library** and search for and enable:
+1. **Gmail API** (Click *Enable*)
+2. **Google Calendar API** (Click *Enable*)
 
-### Step 3: Configure Scopes
-Add the following least-privilege scopes:
-- `.../auth/userinfo.email` (View primary email address)
-- `.../auth/gmail.readonly` (Read faculty emails to summarize briefings and propose drafts)
-- `.../auth/calendar` (View and manage scheduled faculty lectures and office hours)
+### Step 3: Configure the OAuth Consent Screen
+1. Navigate to **APIs & Services** -> **OAuth consent screen**.
+2. Select **User Type**: **External** (allows both `@gmail.com` and `@kalvium.com` accounts).
+3. Click **Create**.
+4. Fill in **App Information**:
+   - **App name**: `Ma’amAI Academic Assistant`
+   - **User support email**: `sivakumarelango10@gmail.com`
+   - **Application home page**: `https://maamai.vercel.app`
+   - **Developer contact information**: `sivakumarelango10@gmail.com`
+5. Click **Save and Continue**.
 
-### Step 4: Add Authorized Test Users (If using External mode)
-If External mode was chosen in Step 2:
+### Step 4: Configure Scopes (Least Privilege)
+Click **Add or Remove Scopes** and select:
+- `openid` — OpenID Connect identity verification.
+- `.../auth/userinfo.email` — Verified email address claim matching allowlist.
+- `.../auth/userinfo.profile` — User display name and avatar photo.
+- `.../auth/gmail.readonly` — Read faculty emails for briefings and draft assistance.
+- `.../auth/gmail.compose` — Create Gmail drafts (`POST /users/me/drafts`). **Crucial:** Never sends emails automatically.
+- `.../auth/calendar.readonly` — Fetch user's calendar appointments and lectures.
+- `.../auth/calendar.events` — Add user-confirmed calendar events.
+
+Click **Update** and **Save and Continue**.
+
+### Step 5: Add Authorized Test Users
+Because the OAuth Consent Screen is in **Testing** publishing status:
 1. Under **Test users**, click **Add Users**.
-2. Whitelist the exact staff email addresses:
-   - `aris.vance@university.edu` (or designated test account)
-   - `priya.sharma@university.edu` (or designated test account)
+2. Add both exact authorized emails:
+   - `sivakumarelango10@gmail.com`
+   - `avishka.s@kalvium.com`
 3. Click **Save and Continue**.
 
-### Step 5: Create OAuth 2.0 Client Credentials
+> [!NOTE]
+> In Google Cloud "Testing" mode, OAuth refresh tokens have a 7-day expiration lifespan. When expired, the user simply clicks "Continue with Google" to re-authenticate.
+
+### Step 6: Create OAuth 2.0 Web Client Credentials
 1. Navigate to **APIs & Services** -> **Credentials**.
 2. Click **Create Credentials** -> **OAuth client ID**.
-3. Select **Application type**: **Web application**.
-4. Name: `MaamAI Web Client`.
-5. Under **Authorized redirect URIs**, add:
-   - Local development: `http://127.0.0.1:8000/api/oauth/google/callback`
-   - Production Vercel: `https://[YOUR-VERCEL-SUBDOMAIN].vercel.app/api/oauth/google/callback`
-6. Click **Create**.
-7. Securely record the generated **Client ID** and **Client Secret**.
+3. Set **Application type**: **Web application**.
+4. Set **Name**: `MaamAI Web Client`.
+5. Under **Authorized JavaScript origins**, add:
+   - `https://maamai.vercel.app`
+   - `http://localhost:5173`
+   - `http://127.0.0.1:5173`
+6. Under **Authorized redirect URIs**, add:
+   - `https://maamai.vercel.app/api/auth/google/callback`
+   - `https://maamai.vercel.app`
+   - `http://localhost:5173`
+   - `http://127.0.0.1:8000/api/auth/google/callback`
+7. Click **Create**.
+8. Copy the generated **Client ID** and **Client Secret**.
 
 ---
 
-## 4. Production Environment Configuration
+## 3. Vercel Production Environment Variables
 
-Add the Google OAuth credentials to your backend environment on Vercel:
+Enter these credentials into your Vercel Dashboard:
+**Vercel Dashboard -> Project `maamai` -> Settings -> Environment Variables**
 
-```env
-GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=your-google-client-secret
-GOOGLE_REDIRECT_URI=https://your-vercel-domain.vercel.app/api/oauth/google/callback
-```
+| Variable Name | Environment | Value Description |
+|:---|:---|:---|
+| `GOOGLE_CLIENT_ID` | Production | Your Google OAuth Client ID (`*.apps.googleusercontent.com`) |
+| `GOOGLE_CLIENT_SECRET` | Production | Your Google OAuth Client Secret |
+| `GOOGLE_REDIRECT_URI` | Production | `https://maamai.vercel.app/api/auth/google/callback` |
+| `ALLOWED_GOOGLE_EMAILS` | Production | `["sivakumarelango10@gmail.com","avishka.s@kalvium.com"]` |
+| `OAUTH_TOKEN_ENCRYPTION_KEY` | Production | High-entropy Fernet 32-byte base64 encryption key |
+| `JWT_SECRET_KEY` | Production | High-entropy 32+ character JWT signing key |
+| `DATABASE_URL` | Production | Supabase Transaction Pooler URL (port 6543) |
+| `DIRECT_URL` | Production | Supabase Session Pooler URL (port 5432) |
+| `ENVIRONMENT` | Production | `production` |
 
 ---
 
-## 5. Staff Connection Journey
+## 4. Verification Workflow
 
-1. **Staff Login**: Dr. Vance logs in to MaamAI at `https://your-app.vercel.app` using their private credentials.
-2. **Connect Google Account**: In Settings or the Header, Dr. Vance clicks **Connect Google Workspace**.
-3. **Consent & Verification**: The user is redirected to Google's official consent screen and grants permission.
-4. **Encrypted Callback**: Google redirects back to `/api/oauth/google/callback` with a temporary code and CSRF state token.
-5. **Storage**: The backend exchanges the code for access/refresh tokens, encrypts them with Fernet, and updates Dr. Vance's private row in `oauth_connections`.
-6. **Isolation Check**: Dr. Sharma logs in from their device. Dr. Sharma's workspace shows "Not Connected" until Dr. Sharma connects their separate Google account.
+1. Open `https://maamai.vercel.app`.
+2. Click **Continue with Google**.
+3. Sign in with `sivakumarelango10@gmail.com`.
+4. Grant the requested scopes on the Google Consent Screen.
+5. Google redirects back to `https://maamai.vercel.app/api/auth/google/callback`.
+6. Ma’amAI server verifies cryptographic ID token signature, issuer, and email_verified claim.
+7. Authenticated dashboard loads with real staff profile, live Supabase DB status, real inbox, calendar, and task queue.
+8. Click **Save to Gmail Drafts** on any AI draft: genuine draft appears in the staff member's actual Gmail inbox without being sent.

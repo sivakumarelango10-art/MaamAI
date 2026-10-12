@@ -5,69 +5,62 @@ import { api } from '../services/api';
 interface AuthContextType {
   currentUser: StaffUser | null;
   token: string | null;
-  availableStaff: StaffUser[];
   isLoadingAuth: boolean;
-  isProduction: boolean;
-  login: (usernameOrEmail: string, password: string) => Promise<void>;
+  authError: string | null;
+  loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
-  switchStaff: (username: string) => Promise<void>;
+  clearAuthError: () => void;
   refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Default fallback staff users for offline preview
-const DEFAULT_STAFF: StaffUser[] = [
-  {
-    id: 1,
-    email: 'aris.vance@university.edu',
-    username: 'aris_vance',
-    full_name: 'Dr. Aris Vance',
-    role: 'Associate Professor of Computer Science',
-    department: 'School of Interactive Computing',
-    avatar_initials: 'AV',
-    is_active: true,
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 2,
-    email: 'priya.sharma@university.edu',
-    username: 'priya_sharma',
-    full_name: 'Dr. Priya Sharma',
-    role: 'Assistant Professor of Machine Learning',
-    department: 'Data Science & Machine Learning Institute',
-    avatar_initials: 'PS',
-    is_active: true,
-    created_at: new Date().toISOString(),
-  },
-];
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const isProduction = Boolean(
-    import.meta.env.PROD ||
-    (typeof import.meta.env.VITE_APP_ENV === 'string' && import.meta.env.VITE_APP_ENV.toLowerCase() === 'production')
-  );
+  const [token, setToken] = useState<string | null>(() => {
+    // 1. Check URL query parameters for token (redirect from OAuth callback)
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const urlToken = params.get('token');
+      if (urlToken) {
+        localStorage.setItem('maamai-token', urlToken);
+        // Clean URL to prevent token leakage in browser history/bookmarks
+        window.history.replaceState({}, document.title, window.location.pathname);
+        return urlToken;
+      }
+      return localStorage.getItem('maamai-token');
+    }
+    return null;
+  });
 
   const [currentUser, setCurrentUser] = useState<StaffUser | null>(() => {
-    const saved = localStorage.getItem('maamai-current-user');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {
-        return DEFAULT_STAFF[0];
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('maamai-current-user');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch {
+          return null;
+        }
       }
     }
-    return DEFAULT_STAFF[0];
+    return null;
   });
 
-  const [token, setToken] = useState<string | null>(() => {
-    return localStorage.getItem('maamai-token') || 'demo_token_user_1';
+  const [authError, setAuthError] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const errorMsg = params.get('error') || params.get('detail');
+      if (errorMsg) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+        return decodeURIComponent(errorMsg);
+      }
+    }
+    return null;
   });
 
-  const [availableStaff, setAvailableStaff] = useState<StaffUser[]>(DEFAULT_STAFF);
-  const [isLoadingAuth, setIsLoadingAuth] = useState(false);
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
 
-  // Sync token to API client
+  // Sync token with API client and local storage
   useEffect(() => {
     if (token) {
       api.setAuthToken(token);
@@ -86,48 +79,53 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [currentUser]);
 
-  // Reconcile user identity with verified server-side session on mount
+  // Reconcile user profile with verified backend session on mount
   useEffect(() => {
-    if (token && token !== 'demo_token_user_1' && token !== 'demo_token_user_2') {
+    let isMounted = true;
+    if (token) {
+      setIsLoadingAuth(true);
       api.getMe()
         .then((verifiedUser) => {
-          setCurrentUser(verifiedUser);
+          if (isMounted) {
+            setCurrentUser(verifiedUser);
+            setIsLoadingAuth(false);
+          }
         })
         .catch(() => {
-          // Token expired or invalid on server - clear local session
-          setToken(null);
-          setCurrentUser(null);
+          if (isMounted) {
+            // Token expired or invalid on server - clear local session
+            setToken(null);
+            setCurrentUser(null);
+            setIsLoadingAuth(false);
+          }
         });
-    }
-  }, []);
-
-  // Load available staff list on mount (only in non-production environments)
-  useEffect(() => {
-    if (!isProduction) {
-      api.getStaffAccounts().then((staff) => {
-        if (staff && staff.length > 0) {
-          setAvailableStaff(staff);
-        }
-      }).catch(() => {
-        setAvailableStaff(DEFAULT_STAFF);
-      });
     } else {
-      setAvailableStaff([]);
-    }
-  }, [isProduction]);
-
-  const login = async (usernameOrEmail: string, password: string) => {
-    setIsLoadingAuth(true);
-    try {
-      const res = await api.login(usernameOrEmail, password);
-      setToken(res.access_token);
-      setCurrentUser(res.user);
-    } finally {
       setIsLoadingAuth(false);
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, [token]);
+
+  const loginWithGoogle = async () => {
+    setIsLoadingAuth(true);
+    setAuthError(null);
+    try {
+      const { auth_url } = await api.getGoogleAuthUrl();
+      if (auth_url) {
+        window.location.href = auth_url;
+      } else {
+        throw new Error('Google authorization URL not returned.');
+      }
+    } catch (err: any) {
+      setIsLoadingAuth(false);
+      setAuthError(err.message || 'Unable to connect to Google authentication service.');
     }
   };
 
   const logout = async () => {
+    setIsLoadingAuth(true);
     try {
       await api.logout();
     } catch {
@@ -137,29 +135,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setCurrentUser(null);
       localStorage.removeItem('maamai-token');
       localStorage.removeItem('maamai-current-user');
+      setIsLoadingAuth(false);
     }
   };
 
-  const switchStaff = async (username: string) => {
-    if (isProduction) {
-      throw new Error('Quick staff switching is disabled in production mode. Please authenticate directly.');
-    }
-    setIsLoadingAuth(true);
-    try {
-      // In development/demo, authenticate with standard staff credentials
-      const res = await api.login(username, 'Password123!');
-      setToken(res.access_token);
-      setCurrentUser(res.user);
-    } catch {
-      // Fallback switch in offline mode
-      const found = availableStaff.find((s) => s.username === username);
-      if (found) {
-        setCurrentUser(found);
-        setToken(`demo_token_user_${found.id}`);
-      }
-    } finally {
-      setIsLoadingAuth(false);
-    }
+  const clearAuthError = () => {
+    setAuthError(null);
   };
 
   const refreshProfile = useCallback(async () => {
@@ -168,7 +149,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const me = await api.getMe();
       setCurrentUser(me);
     } catch {
-      // Token invalid or session expired
       setToken(null);
       setCurrentUser(null);
     }
@@ -179,12 +159,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       value={{
         currentUser,
         token,
-        availableStaff,
         isLoadingAuth,
-        isProduction,
-        login,
+        authError,
+        loginWithGoogle,
         logout,
-        switchStaff,
+        clearAuthError,
         refreshProfile,
       }}
     >

@@ -21,6 +21,7 @@ interface DraftsReviewQueueProps {
   onApproveDraft: (id: number) => void;
   onRejectDraft: (id: number) => void;
   onUpdateDraft: (id: number, data: Partial<AIDraftItem>) => void;
+  onSaveToGmail?: (id: number) => Promise<void>;
 }
 
 export const DraftsReviewQueue: React.FC<DraftsReviewQueueProps> = ({
@@ -29,6 +30,7 @@ export const DraftsReviewQueue: React.FC<DraftsReviewQueueProps> = ({
   onApproveDraft,
   onRejectDraft,
   onUpdateDraft,
+  onSaveToGmail,
 }) => {
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending_review' | 'approved' | 'rejected'>('pending_review');
   const [editingDraftId, setEditingDraftId] = useState<number | null>(null);
@@ -248,13 +250,23 @@ export const DraftsReviewQueue: React.FC<DraftsReviewQueueProps> = ({
                         >
                           Discard
                         </Button>
+                        {onSaveToGmail && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => onSaveToGmail(draft.id)}
+                            icon={<Sparkles className="w-3.5 h-3.5 text-brand-500" />}
+                          >
+                            Save to Gmail
+                          </Button>
+                        )}
                         <Button
                           variant="success"
                           size="sm"
                           onClick={() => onApproveDraft(draft.id)}
                           icon={<CheckCircle2 className="w-3.5 h-3.5" />}
                         >
-                          Approve &amp; Dispatch
+                          Approve
                         </Button>
                       </div>
                     </div>

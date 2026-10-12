@@ -32,17 +32,26 @@ export const api = {
   },
 
   // -------------------------------------------------------------
-  // Authentication & Staff User Endpoints
+  // Google OAuth 2.0 & Session Endpoints
   // -------------------------------------------------------------
-  async login(usernameOrEmail: string, password: string): Promise<AuthTokenResponse> {
-    const res = await fetch(`${BASE_URL}/auth/login`, {
+  async getGoogleAuthUrl(): Promise<{ auth_url: string; state: string }> {
+    const res = await fetch(`${BASE_URL}/auth/google/url`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to retrieve Google authentication URL');
+    }
+    return await res.json();
+  },
+
+  async exchangeGoogleCode(code: string, state: string): Promise<AuthTokenResponse> {
+    const res = await fetch(`${BASE_URL}/auth/google/exchange`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username_or_email: usernameOrEmail, password }),
+      body: JSON.stringify({ code, state }),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.detail || 'Authentication failed');
+      throw new Error(err.detail || 'Google authentication exchange failed');
     }
     return await res.json();
   },
@@ -51,7 +60,10 @@ export const api = {
     const res = await fetch(`${BASE_URL}/auth/me`, {
       headers: this.getAuthHeaders(),
     });
-    if (!res.ok) throw new Error('Failed to fetch user profile');
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Session expired or invalid profile');
+    }
     return await res.json();
   },
 
@@ -68,41 +80,8 @@ export const api = {
     }
   },
 
-  async getStaffAccounts(): Promise<StaffUser[]> {
-    try {
-      const res = await fetch(`${BASE_URL}/auth/staff-accounts`);
-      if (!res.ok) throw new Error('Non-200 response');
-      return await res.json();
-    } catch {
-      return [
-        {
-          id: 1,
-          email: 'aris.vance@university.edu',
-          username: 'aris_vance',
-          full_name: 'Dr. Aris Vance',
-          role: 'Associate Professor of Computer Science',
-          department: 'School of Interactive Computing',
-          avatar_initials: 'AV',
-          is_active: true,
-          created_at: new Date().toISOString(),
-        },
-        {
-          id: 2,
-          email: 'priya.sharma@university.edu',
-          username: 'priya_sharma',
-          full_name: 'Dr. Priya Sharma',
-          role: 'Assistant Professor of Machine Learning',
-          department: 'Data Science & Machine Learning Institute',
-          avatar_initials: 'PS',
-          is_active: true,
-          created_at: new Date().toISOString(),
-        },
-      ];
-    }
-  },
-
   // -------------------------------------------------------------
-  // Google OAuth Isolation Endpoints
+  // Google Workspace Integration Status & Disconnect
   // -------------------------------------------------------------
   async getOAuthStatus(): Promise<OAuthStatus> {
     try {
@@ -115,17 +94,9 @@ export const api = {
       return {
         is_connected: false,
         provider: 'google',
-        demo_mode: true,
+        demo_mode: false,
       };
     }
-  },
-
-  async getOAuthAuthUrl(): Promise<{ auth_url: string; state: string }> {
-    const res = await fetch(`${BASE_URL}/oauth/google/auth-url`, {
-      headers: this.getAuthHeaders(),
-    });
-    if (!res.ok) throw new Error('OAuth auth url error');
-    return await res.json();
   },
 
   async disconnectOAuth(): Promise<void> {
@@ -146,11 +117,11 @@ export const api = {
       return await res.json();
     } catch {
       return {
-        status: 'simulated',
-        app: 'MaamAI Multi-User',
-        version: '1.1.0',
-        database: 'SQLite (Simulated Offline Mode)',
-        environment: 'development',
+        status: 'disconnected',
+        app: 'MaamAI',
+        version: '1.2.0',
+        database: 'Supabase PostgreSQL',
+        environment: 'production',
         timestamp: new Date().toISOString(),
       };
     }
@@ -160,41 +131,34 @@ export const api = {
   // Workspace Endpoints (Protected by User Session)
   // -------------------------------------------------------------
   async getBriefing(): Promise<BriefingData> {
-    try {
-      const res = await fetch(`${BASE_URL}/briefing`, {
-        headers: this.getAuthHeaders(),
-      });
-      if (!res.ok) throw new Error('Briefing error');
-      return await res.json();
-    } catch {
+    const res = await fetch(`${BASE_URL}/briefing`, {
+      headers: this.getAuthHeaders(),
+    });
+    if (!res.ok) {
       return {
-        id: 1,
-        user_id: 1,
-        date: new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
-        greeting: 'Good morning, Staff Member',
-        quote: '“Simplicity is prerequisite for reliability.” — Edsger W. Dijkstra',
-        summary: 'Your isolated faculty workspace is active. 2 urgent inquiries require attention.',
-        key_focus: ['Deliver scheduled lectures', 'Review pending AI drafts', 'Hold student advising hours'],
-        urgent_count: 2,
-        meetings_count: 3,
-        tasks_count: 4,
+        id: 0,
+        user_id: 0,
+        date: 'Today',
+        greeting: 'Welcome to MaamAI',
+        summary: 'Connect your Google account to synchronize Gmail and Google Calendar.',
+        key_focus: ['Connect Google Workspace to view live schedule and messages'],
+        urgent_count: 0,
+        meetings_count: 0,
+        tasks_count: 0,
         generated_at: new Date().toISOString(),
       };
     }
+    return await res.json();
   },
 
   async getEmails(category?: string, priority?: string): Promise<EmailItem[]> {
-    try {
-      const params = new URLSearchParams();
-      if (category && category !== 'All') params.append('category', category);
-      if (priority && priority !== 'All') params.append('priority', priority);
-      const url = `${BASE_URL}/emails${params.toString() ? `?${params.toString()}` : ''}`;
-      const res = await fetch(url, { headers: this.getAuthHeaders() });
-      if (!res.ok) throw new Error('Emails error');
-      return await res.json();
-    } catch {
-      return [];
-    }
+    const params = new URLSearchParams();
+    if (category && category !== 'All') params.append('category', category);
+    if (priority && priority !== 'All') params.append('priority', priority);
+    const url = `${BASE_URL}/emails${params.toString() ? `?${params.toString()}` : ''}`;
+    const res = await fetch(url, { headers: this.getAuthHeaders() });
+    if (!res.ok) return [];
+    return await res.json();
   },
 
   async toggleEmailRead(id: number): Promise<EmailItem> {
@@ -215,17 +179,25 @@ export const api = {
     return await res.json();
   },
 
-  async getDrafts(status?: string): Promise<AIDraftItem[]> {
-    try {
-      const params = new URLSearchParams();
-      if (status && status !== 'All') params.append('status', status);
-      const url = `${BASE_URL}/ai-drafts${params.toString() ? `?${params.toString()}` : ''}`;
-      const res = await fetch(url, { headers: this.getAuthHeaders() });
-      if (!res.ok) throw new Error('Drafts error');
-      return await res.json();
-    } catch {
-      return [];
+  async saveGmailDraft(emailId: number): Promise<{ success: boolean; draft_id?: string; message: string }> {
+    const res = await fetch(`${BASE_URL}/emails/${emailId}/save-gmail-draft`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to save draft to Gmail');
     }
+    return await res.json();
+  },
+
+  async getDrafts(status?: string): Promise<AIDraftItem[]> {
+    const params = new URLSearchParams();
+    if (status && status !== 'All') params.append('status', status);
+    const url = `${BASE_URL}/ai-drafts${params.toString() ? `?${params.toString()}` : ''}`;
+    const res = await fetch(url, { headers: this.getAuthHeaders() });
+    if (!res.ok) return [];
+    return await res.json();
   },
 
   async approveDraft(id: number): Promise<AIDraftItem> {
@@ -256,17 +228,25 @@ export const api = {
     return await res.json();
   },
 
-  async getCalendarEvents(dateStr?: string): Promise<CalendarEventItem[]> {
-    try {
-      const params = new URLSearchParams();
-      if (dateStr && dateStr !== 'All') params.append('date_str', dateStr);
-      const url = `${BASE_URL}/calendar${params.toString() ? `?${params.toString()}` : ''}`;
-      const res = await fetch(url, { headers: this.getAuthHeaders() });
-      if (!res.ok) throw new Error('Calendar error');
-      return await res.json();
-    } catch {
-      return [];
+  async saveDraftToGmailAccount(draftId: number): Promise<{ success: boolean; draft_id?: string; message: string }> {
+    const res = await fetch(`${BASE_URL}/ai-drafts/${draftId}/save-to-gmail`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to save draft to Gmail account');
     }
+    return await res.json();
+  },
+
+  async getCalendarEvents(dateStr?: string): Promise<CalendarEventItem[]> {
+    const params = new URLSearchParams();
+    if (dateStr && dateStr !== 'All') params.append('date_str', dateStr);
+    const url = `${BASE_URL}/calendar${params.toString() ? `?${params.toString()}` : ''}`;
+    const res = await fetch(url, { headers: this.getAuthHeaders() });
+    if (!res.ok) return [];
+    return await res.json();
   },
 
   async createCalendarEvent(eventData: Omit<CalendarEventItem, 'id' | 'user_id'>): Promise<CalendarEventItem> {
@@ -280,17 +260,13 @@ export const api = {
   },
 
   async getTasks(status?: string, priority?: string): Promise<TaskItem[]> {
-    try {
-      const params = new URLSearchParams();
-      if (status && status !== 'All') params.append('status', status);
-      if (priority && priority !== 'All') params.append('priority', priority);
-      const url = `${BASE_URL}/tasks${params.toString() ? `?${params.toString()}` : ''}`;
-      const res = await fetch(url, { headers: this.getAuthHeaders() });
-      if (!res.ok) throw new Error('Tasks error');
-      return await res.json();
-    } catch {
-      return [];
-    }
+    const params = new URLSearchParams();
+    if (status && status !== 'All') params.append('status', status);
+    if (priority && priority !== 'All') params.append('priority', priority);
+    const url = `${BASE_URL}/tasks${params.toString() ? `?${params.toString()}` : ''}`;
+    const res = await fetch(url, { headers: this.getAuthHeaders() });
+    if (!res.ok) return [];
+    return await res.json();
   },
 
   async createTask(taskData: Omit<TaskItem, 'id' | 'user_id'>): Promise<TaskItem> {
@@ -314,37 +290,31 @@ export const api = {
   },
 
   async getActivity(): Promise<ActivityLogItem[]> {
-    try {
-      const res = await fetch(`${BASE_URL}/activity`, {
-        headers: this.getAuthHeaders(),
-      });
-      if (!res.ok) throw new Error('Activity error');
-      return await res.json();
-    } catch {
-      return [];
-    }
+    const res = await fetch(`${BASE_URL}/activity`, {
+      headers: this.getAuthHeaders(),
+    });
+    if (!res.ok) return [];
+    return await res.json();
   },
 
   async getSettings(): Promise<FacultySettingsData> {
-    try {
-      const res = await fetch(`${BASE_URL}/settings`, {
-        headers: this.getAuthHeaders(),
-      });
-      if (!res.ok) throw new Error('Settings error');
-      return await res.json();
-    } catch {
+    const res = await fetch(`${BASE_URL}/settings`, {
+      headers: this.getAuthHeaders(),
+    });
+    if (!res.ok) {
       return {
-        faculty_name: 'Dr. Aris Vance',
-        faculty_role: 'Associate Professor',
-        faculty_email: 'aris.vance@university.edu',
-        faculty_department: 'School of Interactive Computing',
-        office_hours_default: 'Tuesday & Thursday 11:30 AM - 01:00 PM',
-        ai_tone_preference: 'Warm, Academic, Professional',
+        faculty_name: 'Faculty Staff',
+        faculty_role: 'Academic Staff',
+        faculty_email: '',
+        faculty_department: 'Academic Affairs',
+        office_hours_default: 'By Appointment',
+        ai_tone_preference: 'Academic & Professional',
         dark_mode_default: true,
-        email_integration_status: 'Isolated User Workspace',
-        calendar_integration_status: 'Isolated User Workspace',
+        email_integration_status: 'Google Workspace',
+        calendar_integration_status: 'Google Workspace',
       };
     }
+    return await res.json();
   },
 
   async updateSettings(data: Partial<FacultySettingsData>): Promise<FacultySettingsData> {
@@ -355,12 +325,5 @@ export const api = {
     });
     if (!res.ok) throw new Error('Update settings error');
     return await res.json();
-  },
-
-  async resetDemoData(): Promise<void> {
-    await fetch(`${BASE_URL}/settings/reset-demo`, {
-      method: 'POST',
-      headers: this.getAuthHeaders(),
-    });
   },
 };

@@ -10,7 +10,7 @@ ROOT_DIR = Path(__file__).resolve().parent.parent.parent
 ROOT_ENV_FILE = ROOT_DIR / ".env"
 
 DEFAULT_DEV_JWT_SECRET = "maamai_production_grade_jwt_secret_key_change_in_production"
-DEFAULT_DEV_ENCRYPTION_KEY = "cKNExS5eKAKDtFx8KvadVCS_RMLC8N3r9_raEO27mdo="
+DEFAULT_DEV_ENCRYPTION_KEY = "090idhAZDjxxh2p2zigRfZHMAMVOiKz7hJ___DP1LnI="
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "MaamAI"
@@ -23,6 +23,7 @@ class Settings(BaseSettings):
         "http://localhost:5173",
         "http://127.0.0.1:5173",
         "http://localhost:3000",
+        "https://maamai.vercel.app",
     ]
 
     # JWT Authentication configuration
@@ -36,12 +37,18 @@ class Settings(BaseSettings):
     # Rate limiting for authentication (per IP or username)
     LOGIN_RATE_LIMIT_PER_MINUTE: int = 5
 
-    # Google OAuth (Phase 2 preview configuration)
-    GOOGLE_CLIENT_ID: str = "placeholder_client_id_phase2"
-    GOOGLE_CLIENT_SECRET: str = "placeholder_client_secret_phase2"
-    GOOGLE_REDIRECT_URI: str = "http://localhost:8000/api/oauth/google/callback"
-    ENABLE_GMAIL_SYNC: bool = False
-    ENABLE_GCAL_SYNC: bool = False
+    # Strict server-side Google account allowlist
+    ALLOWED_GOOGLE_EMAILS: List[str] = [
+        "sivakumarelango10@gmail.com",
+        "avishka.s@kalvium.com",
+    ]
+
+    # Google OAuth 2.0 / OpenID Connect credentials
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    GOOGLE_REDIRECT_URI: str = "https://maamai.vercel.app/api/auth/google/callback"
+    ENABLE_GMAIL_SYNC: bool = True
+    ENABLE_GCAL_SYNC: bool = True
 
     # AI Provider configuration
     AI_PROVIDER: str = "gemini_free"
@@ -85,6 +92,13 @@ class Settings(BaseSettings):
     def validate_production_security(self):
         env = self.ENVIRONMENT.lower()
         if env == "production":
+            # 0. Reject SQLite in production
+            if self.get_database_url().startswith("sqlite"):
+                raise ValueError(
+                    "CRITICAL SECURITY CONFIGURATION: In production mode, SQLite is prohibited. "
+                    "DATABASE_URL must be configured with Supabase PostgreSQL."
+                )
+
             # 1. Validate JWT Secret
             if self.JWT_SECRET_KEY == DEFAULT_DEV_JWT_SECRET or len(self.JWT_SECRET_KEY) < 32:
                 raise ValueError(

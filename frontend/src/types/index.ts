@@ -15,6 +15,7 @@ export interface StaffUser {
   role: string;
   department: string;
   avatar_initials: string;
+  picture_url?: string;
   is_active: boolean;
   created_at: string;
 }
@@ -70,7 +71,9 @@ export interface EmailItem {
   is_read: boolean;
   has_draft: boolean;
   received_at: string;
-  demo_label: string;
+  google_message_id?: string;
+  thread_id?: string;
+  demo_label?: string;
 }
 
 export interface AIDraftItem {
@@ -81,10 +84,11 @@ export interface AIDraftItem {
   subject: string;
   body: string;
   tone: string;
-  status: 'pending_review' | 'approved' | 'rejected';
+  status: 'pending_review' | 'approved' | 'rejected' | 'saved_to_gmail' | string;
   confidence_score: number;
+  google_draft_id?: string;
   created_at: string;
-  demo_label: string;
+  demo_label?: string;
 }
 
 export interface CalendarEventItem {
@@ -98,7 +102,8 @@ export interface CalendarEventItem {
   event_type: 'lecture' | 'office_hours' | 'meeting' | 'colloquium' | string;
   attendee_count: number;
   notes?: string;
-  demo_label: string;
+  google_event_id?: string;
+  demo_label?: string;
 }
 
 export interface TaskItem {
@@ -110,7 +115,7 @@ export interface TaskItem {
   due_date: string;
   priority: 'high' | 'medium' | 'low';
   status: 'pending' | 'in_progress' | 'completed';
-  demo_label: string;
+  demo_label?: string;
 }
 
 export interface ActivityLogItem {

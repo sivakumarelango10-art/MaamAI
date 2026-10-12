@@ -12,7 +12,9 @@ model User {
   id              Int               @id @default(autoincrement())
   email           String            @unique
   username        String            @unique
-  hashedPassword  String            @map("hashed_password")
+  hashedPassword  String?           @map("hashed_password")
+  googleId        String?           @unique @map("google_id")
+  pictureUrl      String?           @map("picture_url")
   fullName        String            @map("full_name")
   role            String
   department      String
@@ -70,22 +72,24 @@ model Briefing {
 }
 
 model Email {
-  id          Int       @id @default(autoincrement())
-  userId      Int       @map("user_id")
-  senderName  String    @map("sender_name")
-  senderEmail String    @map("sender_email")
-  subject     String
-  snippet     String
-  body        String
-  category    String    @default("Student Inquiries")
-  priority    String    @default("medium")
-  isRead      Boolean   @default(false) @map("is_read")
-  hasDraft    Boolean   @default(false) @map("has_draft")
-  receivedAt  String    @map("received_at")
-  demoLabel   String    @default("[Demo Data - Sample Faculty Inbox]") @map("demo_label")
+  id               Int       @id @default(autoincrement())
+  userId           Int       @map("user_id")
+  senderName       String    @map("sender_name")
+  senderEmail      String    @map("sender_email")
+  subject          String
+  snippet          String
+  body             String
+  category         String    @default("Student Inquiries")
+  priority         String    @default("medium")
+  isRead           Boolean   @default(false) @map("is_read")
+  hasDraft         Boolean   @default(false) @map("has_draft")
+  receivedAt       String    @map("received_at")
+  googleMessageId  String?   @map("google_message_id")
+  threadId         String?   @map("thread_id")
+  demoLabel        String    @default("[Demo Data - Sample Faculty Inbox]") @map("demo_label")
 
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  drafts      AIDraft[]
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  drafts           AIDraft[]
 
   @@map("emails")
 }
@@ -100,6 +104,7 @@ model AIDraft {
   tone            String   @default("Professional & Encouraging")
   status          String   @default("pending_review")
   confidenceScore Float    @default(0.94) @map("confidence_score")
+  googleDraftId   String?  @map("google_draft_id")
   createdAt       DateTime @default(now()) @map("created_at")
   demoLabel       String   @default("[Demo - AI Proposed Response]") @map("demo_label")
 
@@ -120,6 +125,7 @@ model CalendarEvent {
   eventType     String   @default("lecture") @map("event_type")
   attendeeCount Int      @default(1) @map("attendee_count")
   notes         String?
+  googleEventId String?  @map("google_event_id")
   demoLabel     String   @default("[Demo Data - Academic Schedule]") @map("demo_label")
 
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)

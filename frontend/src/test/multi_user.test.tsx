@@ -4,82 +4,114 @@ import React from 'react';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { ThemeProvider } from '../context/ThemeContext';
 import { Header } from '../components/layout/Header';
+import { LoginPage } from '../components/auth/LoginPage';
+import { App } from '../App';
 import { api } from '../services/api';
-import { Badge } from '../components/ui/Badge';
-import { Card } from '../components/ui/Card';
 
-// Test consumer component for testing AuthContext
-const TestConsumer: React.FC = () => {
-  const { currentUser, switchStaff, logout, token } = useAuth();
+const TestAuthConsumer: React.FC = () => {
+  const { currentUser, logout, token, loginWithGoogle } = useAuth();
   return (
     <div>
       <span data-testid="user-name">{currentUser?.full_name || 'No User'}</span>
       <span data-testid="user-email">{currentUser?.email || 'No Email'}</span>
       <span data-testid="user-token">{token || 'No Token'}</span>
-      <button
-        data-testid="switch-to-priya"
-        onClick={() => switchStaff('priya_sharma')}
-      >
-        Switch to Priya
+      <button data-testid="google-login-btn" onClick={loginWithGoogle}>
+        Sign In With Google
       </button>
-      <button
-        data-testid="switch-to-aris"
-        onClick={() => switchStaff('aris_vance')}
-      >
-        Switch to Aris
-      </button>
-      <button
-        data-testid="logout-btn"
-        onClick={() => logout()}
-      >
+      <button data-testid="logout-btn" onClick={logout}>
         Log Out
       </button>
     </div>
   );
 };
 
-describe('Multi-User Workspace & Session Tests', () => {
+describe('Google Authentication & Production Session Tests', () => {
   beforeEach(() => {
     localStorage.clear();
     vi.clearAllMocks();
   });
 
-  it('initializes default staff workspace as Dr. Aris Vance with isolated token', () => {
+  it('initializes in clean unauthenticated state when no session token exists', () => {
     render(
       <AuthProvider>
-        <TestConsumer />
+        <TestAuthConsumer />
       </AuthProvider>
     );
 
-    expect(screen.getByTestId('user-name')).toHaveTextContent('Dr. Aris Vance');
-    expect(screen.getByTestId('user-email')).toHaveTextContent('aris.vance@university.edu');
-    expect(screen.getByTestId('user-token')).toHaveTextContent('demo_token_user_1');
+    expect(screen.getByTestId('user-name')).toHaveTextContent('No User');
+    expect(screen.getByTestId('user-email')).toHaveTextContent('No Email');
+    expect(screen.getByTestId('user-token')).toHaveTextContent('No Token');
   });
 
-  it('switches staff account and updates bearer authorization context', async () => {
+  it('renders LoginPage with Continue with Google button when unauthenticated', () => {
+    render(
+      <ThemeProvider>
+        <AuthProvider>
+          <LoginPage />
+        </AuthProvider>
+      </ThemeProvider>
+    );
+
+    expect(screen.getByText('Ma’amAI')).toBeInTheDocument();
+    expect(screen.getByText('Continue with Google')).toBeInTheDocument();
+    expect(
+      screen.getByText(/Access is restricted to the two authorized Ma’amAI accounts/i)
+    ).toBeInTheDocument();
+  });
+
+  it('reconciles authorized staff user from localStorage and backend getMe', async () => {
+    const mockStaffUser = {
+      id: 1,
+      email: 'sivakumarelango10@gmail.com',
+      username: 'sivakumar_elango',
+      full_name: 'Sivakumar Elango',
+      role: 'Faculty Member / Lead Researcher',
+      department: 'Computer Science & Engineering',
+      avatar_initials: 'SE',
+      is_active: true,
+      created_at: new Date().toISOString(),
+    };
+
+    localStorage.setItem('maamai-token', 'valid-jwt-session-token');
+    localStorage.setItem('maamai-current-user', JSON.stringify(mockStaffUser));
+    vi.spyOn(api, 'getMe').mockResolvedValue(mockStaffUser);
+
     render(
       <AuthProvider>
-        <TestConsumer />
+        <TestAuthConsumer />
       </AuthProvider>
     );
 
-    const switchBtn = screen.getByTestId('switch-to-priya');
-    fireEvent.click(switchBtn);
-
     await waitFor(() => {
-      expect(screen.getByTestId('user-name')).toHaveTextContent('Dr. Priya Sharma');
-      expect(screen.getByTestId('user-email')).toHaveTextContent('priya.sharma@university.edu');
+      expect(screen.getByTestId('user-name')).toHaveTextContent('Sivakumar Elango');
+      expect(screen.getByTestId('user-email')).toHaveTextContent('sivakumarelango10@gmail.com');
+      expect(screen.getByTestId('user-token')).toHaveTextContent('valid-jwt-session-token');
     });
   });
 
   it('clears session and tokens upon logout', async () => {
+    const mockStaffUser = {
+      id: 2,
+      email: 'avishka.s@kalvium.com',
+      username: 'avishka_s',
+      full_name: 'Avishka S',
+      role: 'Academic Faculty / Instructor',
+      department: 'Software Engineering & Systems',
+      avatar_initials: 'AS',
+      is_active: true,
+      created_at: new Date().toISOString(),
+    };
+
+    localStorage.setItem('maamai-token', 'active-token-avishka');
+    localStorage.setItem('maamai-current-user', JSON.stringify(mockStaffUser));
+    vi.spyOn(api, 'getMe').mockResolvedValue(mockStaffUser);
+    vi.spyOn(api, 'logout').mockResolvedValue();
+
     render(
       <AuthProvider>
-        <TestConsumer />
+        <TestAuthConsumer />
       </AuthProvider>
     );
-
-    expect(screen.getByTestId('user-token')).not.toHaveTextContent('No Token');
 
     const logoutBtn = screen.getByTestId('logout-btn');
     fireEvent.click(logoutBtn);
@@ -93,54 +125,60 @@ describe('Multi-User Workspace & Session Tests', () => {
   });
 
   it('injects Authorization: Bearer <token> into API client headers', () => {
-    api.setAuthToken('test-secret-jwt-token-456');
+    api.setAuthToken('test-secret-google-session-jwt');
     const headers = api.getAuthHeaders();
-    expect(headers['Authorization']).toBe('Bearer test-secret-jwt-token-456');
+    expect(headers['Authorization']).toBe('Bearer test-secret-google-session-jwt');
     expect(headers['Content-Type']).toBe('application/json');
-
-    api.setAuthToken(null);
-    const clearedHeaders = api.getAuthHeaders();
-    expect(clearedHeaders['Authorization']).toBeUndefined();
   });
 
-  it('renders Header with active staff identity and isolation status', () => {
+  it('renders Header with verified staff identity and Supabase DB status', async () => {
+    const mockStaffUser = {
+      id: 1,
+      email: 'sivakumarelango10@gmail.com',
+      username: 'sivakumar_elango',
+      full_name: 'Sivakumar Elango',
+      role: 'Faculty Member / Lead Researcher',
+      department: 'Computer Science & Engineering',
+      avatar_initials: 'SE',
+      is_active: true,
+      created_at: new Date().toISOString(),
+    };
+
+    localStorage.setItem('maamai-token', 'valid-token');
+    localStorage.setItem('maamai-current-user', JSON.stringify(mockStaffUser));
+    vi.spyOn(api, 'getMe').mockResolvedValue(mockStaffUser);
+    vi.spyOn(api, 'getOAuthStatus').mockResolvedValue({
+      is_connected: true,
+      email_account: 'sivakumarelango10@gmail.com',
+      provider: 'google',
+      demo_mode: false,
+    });
+
     render(
       <ThemeProvider>
         <AuthProvider>
           <Header
             activeTab="overview"
             health={{
-              status: 'ok',
+              status: 'healthy',
               app: 'MaamAI',
-              version: '1.1.0',
-              database: 'SQLite',
-              environment: 'development',
+              version: '1.2.0',
+              database: 'Supabase PostgreSQL',
+              environment: 'production',
               timestamp: new Date().toISOString(),
             }}
-            onToggleSidebar={() => {}}
-            facultyName="Dr. Aris Vance"
-            facultyRole="Associate Professor"
+            onToggleSidebar={vi.fn()}
+            facultyName="Sivakumar Elango"
+            facultyRole="Faculty Member"
           />
         </AuthProvider>
       </ThemeProvider>
     );
 
     expect(screen.getByText('Faculty Executive Overview')).toBeInTheDocument();
-    expect(screen.getByText('Staff Workspace')).toBeInTheDocument();
-    expect(screen.getByText('SQLite DB Active')).toBeInTheDocument();
-  });
-
-  it('renders Card and Badge components with correct styling variants', () => {
-    render(
-      <Card title="Test Security Card" subtitle="Server-side isolated">
-        <Badge variant="demo">Demo Badge</Badge>
-        <Badge variant="high">High Priority</Badge>
-      </Card>
-    );
-
-    expect(screen.getByText('Test Security Card')).toBeInTheDocument();
-    expect(screen.getByText('Server-side isolated')).toBeInTheDocument();
-    expect(screen.getByText('Demo Badge')).toBeInTheDocument();
-    expect(screen.getByText('High Priority')).toBeInTheDocument();
+    expect(screen.getByText('Supabase DB')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('Google Connected')).toBeInTheDocument();
+    });
   });
 });

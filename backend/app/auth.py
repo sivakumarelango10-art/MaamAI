@@ -3,7 +3,7 @@ import uuid
 import time
 import bcrypt
 import jwt
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from app.config import settings
@@ -145,18 +145,26 @@ def revoke_token(token: str, db: Session, user_id: int = None) -> None:
         pass
 
 def get_current_user(
+    request: Request,
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db)
 ) -> User:
     """
     Mandatory authentication dependency.
-    Extracts Bearer token, validates signature/expiration, checks token revocation, and returns authenticated User.
+    Extracts Bearer token or HttpOnly session cookie, validates signature/expiration,
+    checks token revocation, and returns authenticated User.
     NEVER trusts client-supplied user IDs.
     """
-    if not credentials or not credentials.credentials:
+    token = None
+    if credentials and credentials.credentials:
+        token = credentials.credentials
+    elif request and "maamai_session" in request.cookies:
+        token = request.cookies.get("maamai_session")
+
+    if not token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication required. Missing Bearer token.",
+            detail="Authentication required. Please sign in with Google.",
             headers={"WWW-Authenticate": "Bearer"},
         )
 

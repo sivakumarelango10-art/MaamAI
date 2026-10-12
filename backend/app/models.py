@@ -12,7 +12,9 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String(255), unique=True, index=True, nullable=False)
     username = Column(String(100), unique=True, index=True, nullable=False)
-    hashed_password = Column(String(255), nullable=False)
+    hashed_password = Column(String(255), nullable=True)
+    google_id = Column(String(255), unique=True, index=True, nullable=True)
+    picture_url = Column(String(500), nullable=True)
     full_name = Column(String(255), nullable=False)
     role = Column(String(255), nullable=False)
     department = Column(String(255), nullable=False)
@@ -91,6 +93,8 @@ class Email(Base):
     is_read = Column(Boolean, default=False)
     has_draft = Column(Boolean, default=False)
     received_at = Column(String(50), nullable=False)
+    google_message_id = Column(String(255), index=True, nullable=True)
+    thread_id = Column(String(255), index=True, nullable=True)
     demo_label = Column(String(100), default="[Demo Data - Sample Faculty Inbox]")
 
     user = relationship("User", back_populates="emails")
@@ -108,6 +112,7 @@ class AIDraft(Base):
     tone = Column(String(50), default="Professional & Encouraging")
     status = Column(String(30), default="pending_review")
     confidence_score = Column(Float, default=0.94)
+    google_draft_id = Column(String(255), index=True, nullable=True)
     created_at = Column(DateTime, default=utc_now)
     demo_label = Column(String(100), default="[Demo - AI Proposed Response]")
 
@@ -127,6 +132,7 @@ class CalendarEvent(Base):
     event_type = Column(String(50), default="lecture")
     attendee_count = Column(Integer, default=1)
     notes = Column(Text, nullable=True)
+    google_event_id = Column(String(255), index=True, nullable=True)
     demo_label = Column(String(100), default="[Demo Data - Academic Schedule]")
 
     user = relationship("User", back_populates="calendar_events")

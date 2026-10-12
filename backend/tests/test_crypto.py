@@ -63,14 +63,44 @@ def test_production_fails_without_encryption_key():
     with pytest.raises(ValidationError, match="OAUTH_TOKEN_ENCRYPTION_KEY"):
         Settings(
             ENVIRONMENT="production",
+            DATABASE_URL="postgresql://user:pass@host:5432/db",
             JWT_SECRET_KEY="a" * 32,
             OAUTH_TOKEN_ENCRYPTION_KEY="",
         )
 
-def test_oauth_api_does_not_leak_tokens(client, auth_headers_user1):
-    # Connect preview with simulated tokens
-    res = client.post("/api/oauth/google/connect-preview", headers=auth_headers_user1)
-    assert res.status_code == 200
+def test_production_rejects_sqlite():
+    from pydantic import ValidationError
+    from cryptography.fernet import Fernet
+    valid_key = Fernet.generate_key().decode()
+    with pytest.raises(ValidationError, match="SQLite is prohibited"):
+        Settings(
+            ENVIRONMENT="production",
+            DATABASE_URL="sqlite:///./maamai.db",
+            JWT_SECRET_KEY="a" * 32,
+            OAUTH_TOKEN_ENCRYPTION_KEY=valid_key,
+        )
+
+def test_oauth_api_does_not_leak_tokens(client, db_session, user1, auth_headers_user1):
+    from app.models import OAuthConnection
+    from app.crypto import encrypt_token
+
+    # Store encrypted tokens for user1
+    existing_conn = db_session.query(OAuthConnection).filter(OAuthConnection.user_id == user1.id).first()
+    if existing_conn:
+        existing_conn.is_connected = True
+        existing_conn.access_token = encrypt_token("ya29.sample_secret_access_token")
+        existing_conn.refresh_token = encrypt_token("1//sample_secret_refresh_token")
+    else:
+        conn = OAuthConnection(
+            user_id=user1.id,
+            provider="google",
+            email_account=user1.email,
+            is_connected=True,
+            access_token=encrypt_token("ya29.sample_secret_access_token"),
+            refresh_token=encrypt_token("1//sample_secret_refresh_token"),
+        )
+        db_session.add(conn)
+    db_session.commit()
 
     # Query status
     status_res = client.get("/api/oauth/google/status", headers=auth_headers_user1)
@@ -78,8 +108,17 @@ def test_oauth_api_does_not_leak_tokens(client, auth_headers_user1):
     data = status_res.json()
 
     assert data["is_connected"] is True
-    # Ensure neither tokens nor ciphertexts are returned in public API response
+    # Ensure neither plaintext tokens nor ciphertexts are returned in public API response
     assert "access_token" not in data
     assert "refresh_token" not in data
     assert "encrypted_access_token" not in data
     assert "encrypted_refresh_token" not in data
+    assert "ya29" not in str(data)
+    assert "1//" not in str(data)
+
+    # Test disconnect operation removes tokens
+    disc_res = client.post("/api/oauth/google/disconnect", headers=auth_headers_user1)
+    assert disc_res.status_code == 200
+    post_disc_res = client.get("/api/oauth/google/status", headers=auth_headers_user1)
+    assert post_disc_res.status_code == 200
+    assert post_disc_res.json()["is_connected"] is False

@@ -19,16 +19,8 @@ from app.routers import (
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Initialize and migrate SQLite tables on startup
+    # Initialize database tables non-destructively
     init_and_migrate_db()
-    
-    # Only seed demo accounts in development/demo mode; NEVER in production
-    if settings.ENVIRONMENT.lower() != "production":
-        db = SessionLocal()
-        try:
-            seed_database(db, force=False)
-        finally:
-            db.close()
     yield
 
 app = FastAPI(

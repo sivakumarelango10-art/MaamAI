@@ -13,7 +13,7 @@ import type {
 import { api } from './services/api';
 import { Header } from './components/layout/Header';
 import { Sidebar } from './components/layout/Sidebar';
-import { DemoBanner } from './components/layout/DemoBadge';
+import { LoginPage } from './components/auth/LoginPage';
 import { DailyBriefingPanel } from './components/dashboard/DailyBriefingPanel';
 import { OverviewStats } from './components/dashboard/OverviewStats';
 import { EmailList } from './components/email/EmailList';
@@ -24,11 +24,11 @@ import { ActivityFeed } from './components/activity/ActivityFeed';
 import { SettingsView } from './components/settings/SettingsView';
 import { Card } from './components/ui/Card';
 import { Button } from './components/ui/Button';
-import { Calendar, CheckSquare, Mail, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { useAuth } from './context/AuthContext';
 
 export const App: React.FC = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, token, isLoadingAuth } = useAuth();
   const [activeTab, setActiveTab] = useState<NavigationTab>('overview');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -42,15 +42,15 @@ export const App: React.FC = () => {
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [activities, setActivities] = useState<ActivityLogItem[]>([]);
   const [settings, setSettings] = useState<FacultySettingsData>({
-    faculty_name: 'Dr. Aris Vance',
-    faculty_role: 'Associate Professor of Computer Science',
-    faculty_email: 'aris.vance@university.edu',
-    faculty_department: 'School of Interactive Computing',
-    office_hours_default: 'Tuesday & Thursday 11:30 AM - 01:00 PM',
+    faculty_name: 'Academic Staff',
+    faculty_role: 'Faculty Member',
+    faculty_email: '',
+    faculty_department: 'Faculty Department',
+    office_hours_default: 'By Appointment',
     ai_tone_preference: 'Warm, Academic, Professional',
     dark_mode_default: true,
-    email_integration_status: 'Isolated User Workspace',
-    calendar_integration_status: 'Isolated User Workspace',
+    email_integration_status: 'Google Workspace',
+    calendar_integration_status: 'Google Workspace',
   });
 
   const [isLoading, setIsLoading] = useState(true);
@@ -62,8 +62,9 @@ export const App: React.FC = () => {
     setTimeout(() => setNotification(null), 3500);
   };
 
-  // Fetch all data
+  // Fetch all user data
   const loadAllData = useCallback(async () => {
+    if (!token || !currentUser) return;
     setIsLoading(true);
     try {
       const [
@@ -95,15 +96,17 @@ export const App: React.FC = () => {
       setActivities(activityRes);
       setSettings(settingsRes);
     } catch {
-      // Fallback handled within api service
+      // Graceful fallback
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [token, currentUser?.id]);
 
   useEffect(() => {
-    loadAllData();
-  }, [loadAllData, currentUser?.id]);
+    if (token && currentUser) {
+      loadAllData();
+    }
+  }, [loadAllData, token, currentUser?.id]);
 
   // Handlers for mutative actions
   const handleToggleEmailRead = async (id: number) => {
@@ -118,8 +121,7 @@ export const App: React.FC = () => {
       const draft = await api.generateDraftForEmail(emailId);
       setEmails((prev) => prev.map((e) => (e.id === emailId ? { ...e, has_draft: true } : e)));
       setDrafts((prev) => [draft, ...prev.filter((d) => d.id !== draft.id)]);
-      showNotification('AI draft proposal prepared and added to review queue');
-      // Refresh activity log
+      showNotification('Draft proposal prepared and added to review queue');
       api.getActivity().then(setActivities);
     } finally {
       setIsGeneratingDraftId(null);
@@ -129,7 +131,7 @@ export const App: React.FC = () => {
   const handleApproveDraft = async (id: number) => {
     const approved = await api.approveDraft(id);
     setDrafts((prev) => prev.map((d) => (d.id === id ? approved : d)));
-    showNotification('Draft approved and dispatched');
+    showNotification('Draft approved');
     api.getActivity().then(setActivities);
   };
 
@@ -144,6 +146,19 @@ export const App: React.FC = () => {
     const updated = await api.updateDraft(id, data);
     setDrafts((prev) => prev.map((d) => (d.id === id ? updated : d)));
     showNotification('Draft changes saved');
+  };
+
+  const handleSaveDraftToGmail = async (draftId: number) => {
+    try {
+      const res = await api.saveDraftToGmailAccount(draftId);
+      showNotification(res.message);
+      setDrafts((prev) =>
+        prev.map((d) => (d.id === draftId ? { ...d, status: 'saved_to_gmail', google_draft_id: res.draft_id } : d))
+      );
+      api.getActivity().then(setActivities);
+    } catch (err: any) {
+      showNotification(err.message || 'Failed to save draft to Gmail');
+    }
   };
 
   const handleCreateCalendarEvent = async (eventData: Omit<CalendarEventItem, 'id' | 'user_id'>) => {
@@ -171,14 +186,23 @@ export const App: React.FC = () => {
   const handleUpdateSettings = async (updatedData: Partial<FacultySettingsData>) => {
     const saved = await api.updateSettings(updatedData);
     setSettings(saved);
-    showNotification('Settings saved to SQLite');
+    showNotification('Preferences saved to Supabase');
   };
 
-  const handleResetDemo = async () => {
-    await api.resetDemoData();
-    await loadAllData();
-    showNotification('SQLite database re-seeded with pristine demo data');
-  };
+  // If loading authentication state, show a clean loading view
+  if (isLoadingAuth) {
+    return (
+      <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col items-center justify-center space-y-4">
+        <div className="w-10 h-10 border-3 border-brand-500 border-t-transparent rounded-full animate-spin" />
+        <p className="text-xs font-semibold text-slate-400">Verifying secure staff session...</p>
+      </div>
+    );
+  }
+
+  // If unauthenticated, render the Google-only login screen
+  if (!token || !currentUser) {
+    return <LoginPage />;
+  }
 
   // Badge Counts
   const badgeCounts = {
@@ -190,9 +214,6 @@ export const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors">
-      {/* Demo Mode Banner */}
-      <DemoBanner />
-
       <div className="flex flex-1 overflow-hidden">
         {/* Collapsible Sidebar */}
         <Sidebar
@@ -250,73 +271,22 @@ export const App: React.FC = () => {
                   onSelectTab={setActiveTab}
                 />
 
-                {/* 2-Column Split: Inbox Summary & Schedule Timeline */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Left: Email summary preview */}
-                  <Card
-                    title="Faculty Communications"
-                    subtitle="Unread and high priority items"
-                    headerAction={
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setActiveTab('inbox')}
-                        icon={<Mail className="w-3.5 h-3.5" />}
-                      >
-                        All Emails ({emails.length})
-                      </Button>
-                    }
-                  >
-                    <EmailList
-                      emails={emails.slice(0, 3)}
-                      isLoading={isLoading}
-                      onToggleRead={handleToggleEmailRead}
-                      onGenerateDraft={handleGenerateDraft}
-                      onViewDraft={() => setActiveTab('drafts')}
-                      isGeneratingDraftId={isGeneratingDraftId}
-                    />
-                  </Card>
-
-                  {/* Right: Academic Timeline preview */}
-                  <Card
-                    title="Today's Timetable"
-                    subtitle="Lecture rooms and scheduled syncs"
-                    headerAction={
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setActiveTab('calendar')}
-                        icon={<Calendar className="w-3.5 h-3.5" />}
-                      >
-                        Full Calendar
-                      </Button>
-                    }
-                  >
-                    <CalendarTimeline
-                      events={calendarEvents.filter((e) => e.date_str.toLowerCase() === 'today')}
-                      isLoading={isLoading}
-                      onCreateEvent={handleCreateCalendarEvent}
-                    />
-                  </Card>
-                </div>
-
-                {/* Bottom Row: Quick Tasks Checklist */}
+                {/* Compact Task Checklist Card */}
                 <Card
-                  title="Deliverables & Grading Checklist"
-                  subtitle="Faculty actionable items"
+                  title="Priority Deliverables"
+                  subtitle="Active actionable checklist items"
                   headerAction={
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => setActiveTab('tasks')}
-                      icon={<CheckSquare className="w-3.5 h-3.5" />}
                     >
-                      Task Board ({tasks.length})
+                      View All
                     </Button>
                   }
                 >
                   <TaskManager
-                    tasks={tasks.slice(0, 4)}
+                    tasks={tasks.slice(0, 5)}
                     isLoading={isLoading}
                     onToggleTaskStatus={handleToggleTaskStatus}
                     onCreateTask={handleCreateTask}
@@ -334,7 +304,7 @@ export const App: React.FC = () => {
                       Faculty Inbox
                     </h2>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Curated student messages, faculty committee notes, and grant proposals.
+                      Institutional correspondence streamed from your Google Workspace account.
                     </p>
                   </div>
                   <Button
@@ -343,7 +313,7 @@ export const App: React.FC = () => {
                     onClick={loadAllData}
                     icon={<RefreshCw className="w-3.5 h-3.5" />}
                   >
-                    Refresh
+                    Refresh Inbox
                   </Button>
                 </div>
 
@@ -367,7 +337,7 @@ export const App: React.FC = () => {
                       AI Draft Proposals & Review
                     </h2>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Human-in-the-loop: inspect, customize tone, approve, or discard proposed replies.
+                      Human-in-the-loop: inspect, customize tone, approve, or save directly to your Gmail account.
                     </p>
                   </div>
                   <Button
@@ -386,6 +356,7 @@ export const App: React.FC = () => {
                   onApproveDraft={handleApproveDraft}
                   onRejectDraft={handleRejectDraft}
                   onUpdateDraft={handleUpdateDraft}
+                  onSaveToGmail={handleSaveDraftToGmail}
                 />
               </div>
             )}
@@ -399,7 +370,7 @@ export const App: React.FC = () => {
                       Academic Schedule & Timeline
                     </h2>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Lectures, office hours, and university administrative sessions.
+                      Lectures, office hours, and university sessions synchronized with Google Calendar.
                     </p>
                   </div>
                   <Button
@@ -408,7 +379,7 @@ export const App: React.FC = () => {
                     onClick={loadAllData}
                     icon={<RefreshCw className="w-3.5 h-3.5" />}
                   >
-                    Refresh
+                    Refresh Schedule
                   </Button>
                 </div>
 
@@ -465,7 +436,7 @@ export const App: React.FC = () => {
                       System Activity & Audit Log
                     </h2>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Audit trail of automated briefings and faculty actions.
+                      Tamper-evident audit trail of briefings, drafts, and staff actions.
                     </p>
                   </div>
                   <Button
@@ -489,7 +460,6 @@ export const App: React.FC = () => {
                   settings={settings}
                   isLoading={isLoading}
                   onUpdateSettings={handleUpdateSettings}
-                  onResetDemo={handleResetDemo}
                 />
               </div>
             )}
