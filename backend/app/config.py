@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api"
     ENVIRONMENT: str = "development"  # 'development' or 'production'
     DATABASE_URL: str = "sqlite:///./maamai.db"
+    DIRECT_URL: str = ""
     CORS_ORIGINS: List[str] = [
         "http://localhost:5173",
         "http://127.0.0.1:5173",
@@ -57,9 +58,24 @@ class Settings(BaseSettings):
         """Normalize database connection URL for SQLAlchemy compatibility."""
         url = self.DATABASE_URL
         if url.startswith("postgres://"):
-            url = url.replace("postgres://", "postgresql://", 1)
+            url = url.replace("postgres://", "postgresql+psycopg2://", 1)
+        elif url.startswith("postgresql://"):
+            url = url.replace("postgresql://", "postgresql+psycopg2://", 1)
         elif url.startswith("sqlite:///./"):
             # Resolve relative SQLite database path to the canonical workspace root
+            rel_name = url.replace("sqlite:///./", "", 1)
+            abs_db = (ROOT_DIR / rel_name).resolve()
+            url = f"sqlite:///{abs_db.as_posix()}"
+        return url
+
+    def get_direct_url(self) -> str:
+        """Return direct URL for migrations (Session pooler port 5432), falling back to database URL."""
+        url = self.DIRECT_URL if self.DIRECT_URL else self.DATABASE_URL
+        if url.startswith("postgres://"):
+            url = url.replace("postgres://", "postgresql+psycopg2://", 1)
+        elif url.startswith("postgresql://"):
+            url = url.replace("postgresql://", "postgresql+psycopg2://", 1)
+        elif url.startswith("sqlite:///./"):
             rel_name = url.replace("sqlite:///./", "", 1)
             abs_db = (ROOT_DIR / rel_name).resolve()
             url = f"sqlite:///{abs_db.as_posix()}"

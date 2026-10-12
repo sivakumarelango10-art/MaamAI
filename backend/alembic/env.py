@@ -24,8 +24,8 @@ if config.config_file_name is not None:
 # Set target metadata for autogenerate
 target_metadata = Base.metadata
 
-# Override sqlalchemy.url with dynamic database URL from settings
-db_url = settings.get_database_url()
+# Override sqlalchemy.url with dynamic database URL from settings (prefers DIRECT_URL for migrations)
+db_url = settings.get_direct_url()
 config.set_main_option("sqlalchemy.url", db_url)
 
 def run_migrations_offline() -> None:
