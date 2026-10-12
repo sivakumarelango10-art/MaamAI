@@ -68,28 +68,30 @@ Because the OAuth Consent Screen is in **Testing** publishing status:
 > [!NOTE]
 > In Google Cloud "Testing" mode, OAuth refresh tokens have a 7-day expiration lifespan. When expired, the user simply clicks "Continue with Google" to re-authenticate.
 
-### Step 6: Create OAuth 2.0 Web Client Credentials
-1. Navigate to **APIs & Services** -> **Credentials**.
-2. Click **Create Credentials** -> **OAuth client ID**.
-3. Set **Application type**: **Web application**.
-4. Set **Name**: `MaamAI Web Client`.
-5. Under **Authorized JavaScript origins**, add:
-   - `https://maamai.vercel.app`
-   - `http://localhost:5173`
-   - `http://127.0.0.1:5173`
-6. Under **Authorized redirect URIs**, add:
-   - `https://maamai.vercel.app/api/auth/google/callback`
-   - `https://maamai.vercel.app`
-   - `http://localhost:5173`
-   - `http://127.0.0.1:8000/api/auth/google/callback`
-7. Click **Create**.
-8. Copy the generated **Client ID** and **Client Secret**.
+### Step 6: Configure OAuth 2.0 Web Client (`agent-ai-511405`)
+Your Google OAuth Web Client is created:
+- **Project ID:** `agent-ai-511405`
+- **Application Type:** Web application
+
+> [!IMPORTANT]
+> **CRITICAL ACTION IN GOOGLE CLOUD CONSOLE:**
+> In Google Cloud Console -> **APIs & Services** -> **Credentials**, click edit (pencil icon) on your OAuth Client ID and ensure the following are saved:
+> 
+> **Authorized JavaScript origins:**
+> - `https://maamai.vercel.app`
+> - `http://localhost:5173`
+> 
+> **Authorized redirect URIs (add both):**
+> - `https://maamai.vercel.app/api/auth/google/callback` *(Mandatory for Vercel production)*
+> - `https://inrrhqnkvwublklehivy.supabase.co/auth/v1/callback` *(For Supabase Auth integration)*
+> - `http://localhost:5173`
+> - `http://127.0.0.1:8000/api/auth/google/callback` *(For local testing)*
 
 ---
 
 ## 3. Vercel Production Environment Variables
 
-Enter these credentials into your Vercel Dashboard:
+Enter your credentials into your Vercel Dashboard:
 **Vercel Dashboard -> Project `maamai` -> Settings -> Environment Variables**
 
 | Variable Name | Environment | Value Description |
@@ -103,6 +105,17 @@ Enter these credentials into your Vercel Dashboard:
 | `DATABASE_URL` | Production | Supabase Transaction Pooler URL (port 6543) |
 | `DIRECT_URL` | Production | Supabase Session Pooler URL (port 5432) |
 | `ENVIRONMENT` | Production | `production` |
+
+---
+
+## 4. Supabase Dashboard Google Auth Provider (Optional)
+If you also want Supabase Auth to route Google logins:
+1. Open [Supabase Dashboard](https://supabase.com/dashboard/project/inrrhqnkvwublklehivy/auth/providers).
+2. Click **Google** -> Toggle **Enable Google provider** to **ON**.
+3. Paste:
+   - **Client ID:** Your Google Client ID
+   - **Client Secret:** Your Google Client Secret
+4. Click **Save**.
 
 ---
 
