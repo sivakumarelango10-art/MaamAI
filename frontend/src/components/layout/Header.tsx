@@ -63,6 +63,12 @@ export const Header: React.FC<HeaderProps> = ({
             <Menu className="w-5 h-5" />
           </button>
 
+          <img
+            src="/logo.png"
+            alt="Ma’amAI"
+            className="w-8 h-8 rounded-lg object-contain bg-white p-0.5 shadow-xs ring-1 ring-slate-200 dark:ring-slate-700 md:hidden flex-shrink-0"
+          />
+
           <div className="min-w-0">
             <h1 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white truncate flex items-center gap-2">
               <span>{tabTitles[activeTab]}</span>

@@ -9,7 +9,6 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
-  GraduationCap,
   X,
   ShieldCheck,
 } from 'lucide-react';
@@ -101,13 +100,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Brand Header */}
       <div className="p-4 flex items-center justify-between border-b border-slate-100 dark:border-slate-800">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-brand-500/20 flex-shrink-0">
-            <GraduationCap className="w-5 h-5" />
+          <div className="w-10 h-10 rounded-xl bg-white p-0.5 shadow-md shadow-brand-500/20 ring-1 ring-brand-500/20 flex-shrink-0 flex items-center justify-center overflow-hidden">
+            <img src="/logo.png" alt="Ma’amAI" className="w-full h-full object-contain" />
           </div>
           {(!isCollapsed || mobileOpen) && (
             <div className="min-w-0">
               <span className="font-extrabold text-base tracking-tight text-slate-900 dark:text-white flex items-center gap-1">
-                Maam<span className="text-brand-600 dark:text-brand-400">AI</span>
+                Ma’am<span className="text-brand-600 dark:text-brand-400">AI</span>
               </span>
               <span className="text-[10px] text-slate-400 font-medium block uppercase tracking-wider">
                 Staff Assistant

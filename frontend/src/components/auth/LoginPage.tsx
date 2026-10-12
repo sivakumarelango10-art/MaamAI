@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Shield, Sparkles, AlertCircle, CheckCircle2, Lock } from 'lucide-react';
+import { Shield, AlertCircle, CheckCircle2, Lock } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
   const { loginWithGoogle, isLoadingAuth, authError } = useAuth();
@@ -12,15 +12,19 @@ export const LoginPage: React.FC = () => {
       <div className="absolute bottom-10 right-10 w-[400px] h-[400px] bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none" />
 
       <div className="max-w-md w-full relative z-10 space-y-8">
-        {/* Brand Header */}
+        {/* Brand Header with Official Logo */}
         <div className="text-center space-y-3">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-brand-600 to-indigo-500 shadow-xl shadow-brand-500/25 ring-1 ring-white/20 mb-2">
-            <Sparkles className="w-7 h-7 text-white" />
+          <div className="inline-block p-2 rounded-3xl bg-white shadow-2xl shadow-brand-500/25 ring-4 ring-brand-500/20 mb-1 transition-transform hover:scale-105 duration-300">
+            <img
+              src="/logo.png"
+              alt="Ma’amAI Logo"
+              className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl object-contain mx-auto"
+            />
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
             Ma’amAI
           </h1>
-          <p className="text-sm text-slate-400 font-medium max-w-xs mx-auto leading-relaxed">
+          <p className="text-xs text-slate-400 font-medium max-w-xs mx-auto leading-relaxed">
             Executive AI Assistant for Academic Staff & Faculty Workspaces
           </p>
         </div>
