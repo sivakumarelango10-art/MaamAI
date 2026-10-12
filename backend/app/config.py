@@ -63,7 +63,7 @@ class Settings(BaseSettings):
 
     def get_database_url(self) -> str:
         """Normalize database connection URL for SQLAlchemy compatibility."""
-        url = self.DATABASE_URL
+        url = (self.DATABASE_URL or "").strip().strip('"\'')
         if url.startswith("postgres://"):
             url = url.replace("postgres://", "postgresql+psycopg2://", 1)
         elif url.startswith("postgresql://"):
@@ -77,7 +77,9 @@ class Settings(BaseSettings):
 
     def get_direct_url(self) -> str:
         """Return direct URL for migrations (Session pooler port 5432), falling back to database URL."""
-        url = self.DIRECT_URL if self.DIRECT_URL else self.DATABASE_URL
+        url = (self.DIRECT_URL or "").strip().strip('"\'')
+        if not url:
+            url = (self.DATABASE_URL or "").strip().strip('"\'')
         if url.startswith("postgres://"):
             url = url.replace("postgres://", "postgresql+psycopg2://", 1)
         elif url.startswith("postgresql://"):
@@ -92,22 +94,23 @@ class Settings(BaseSettings):
     def validate_production_security(self):
         env = self.ENVIRONMENT.lower()
         if env == "production":
-            # 0. Reject SQLite in production
-            if self.get_database_url().startswith("sqlite"):
+            db_url = self.get_database_url()
+            # 0. Reject SQLite or missing database URL in production
+            if not db_url or db_url.startswith("sqlite"):
                 raise ValueError(
-                    "CRITICAL SECURITY CONFIGURATION: In production mode, SQLite is prohibited. "
+                    "CRITICAL SECURITY CONFIGURATION: In production mode, SQLite is prohibited and DATABASE_URL is required. "
                     "DATABASE_URL must be configured with Supabase PostgreSQL."
                 )
 
             # 1. Validate JWT Secret
-            if self.JWT_SECRET_KEY == DEFAULT_DEV_JWT_SECRET or len(self.JWT_SECRET_KEY) < 32:
+            if not self.JWT_SECRET_KEY or self.JWT_SECRET_KEY == DEFAULT_DEV_JWT_SECRET or len(self.JWT_SECRET_KEY) < 32:
                 raise ValueError(
                     "CRITICAL SECURITY CONFIGURATION: In production mode, JWT_SECRET_KEY must be "
                     "overridden with a high-entropy secret (at least 32 characters)."
                 )
 
             # 2. Validate OAuth Token Encryption Key
-            if self.OAUTH_TOKEN_ENCRYPTION_KEY == DEFAULT_DEV_ENCRYPTION_KEY:
+            if not self.OAUTH_TOKEN_ENCRYPTION_KEY or self.OAUTH_TOKEN_ENCRYPTION_KEY == DEFAULT_DEV_ENCRYPTION_KEY:
                 raise ValueError(
                     "CRITICAL SECURITY CONFIGURATION: In production mode, OAUTH_TOKEN_ENCRYPTION_KEY "
                     "cannot use the default development key. Provide a dedicated Fernet key."

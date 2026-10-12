@@ -83,10 +83,15 @@ def verify_oauth_state(state: str, max_age_seconds: int = 600) -> bool:
 
 def build_google_auth_url(state: str) -> str:
     """Build the official Google OAuth 2.0 authorization URL."""
-    scope_str = "%20".join(OAUTH_SCOPES)
-    client_id = settings.GOOGLE_CLIENT_ID or "placeholder_client_id"
-    redirect_uri = settings.GOOGLE_REDIRECT_URI
+    client_id = (settings.GOOGLE_CLIENT_ID or "").strip()
+    if not client_id or client_id in ("placeholder_client_id", "placeholder"):
+        raise ValueError("Google OAuth Client ID is not configured on this server.")
 
+    redirect_uri = (settings.GOOGLE_REDIRECT_URI or "").strip()
+    if not redirect_uri:
+        raise ValueError("Google OAuth Redirect URI is not configured on this server.")
+
+    scope_str = "%20".join(OAUTH_SCOPES)
     return (
         f"{GOOGLE_AUTH_URL}?"
         f"client_id={client_id}&"
@@ -102,11 +107,17 @@ def exchange_code_for_tokens(code: str) -> Dict[str, Any]:
     """
     Exchange authorization code for Google access and refresh tokens.
     """
+    client_id = (settings.GOOGLE_CLIENT_ID or "").strip()
+    client_secret = (settings.GOOGLE_CLIENT_SECRET or "").strip()
+    redirect_uri = (settings.GOOGLE_REDIRECT_URI or "").strip()
+    if not client_id or not client_secret:
+        raise ValueError("Google OAuth client credentials are not configured on this server.")
+
     data = {
         "code": code,
-        "client_id": settings.GOOGLE_CLIENT_ID,
-        "client_secret": settings.GOOGLE_CLIENT_SECRET,
-        "redirect_uri": settings.GOOGLE_REDIRECT_URI,
+        "client_id": client_id,
+        "client_secret": client_secret,
+        "redirect_uri": redirect_uri,
         "grant_type": "authorization_code",
     }
     with httpx.Client(timeout=15.0) as client:
@@ -172,9 +183,14 @@ def refresh_google_access_token(refresh_token: str) -> Tuple[str, int]:
     Obtain a fresh Google access token using the stored refresh token.
     Returns (new_access_token, expires_in_seconds).
     """
+    client_id = (settings.GOOGLE_CLIENT_ID or "").strip()
+    client_secret = (settings.GOOGLE_CLIENT_SECRET or "").strip()
+    if not client_id or not client_secret:
+        raise ValueError("Google OAuth client credentials are not configured on this server.")
+
     data = {
-        "client_id": settings.GOOGLE_CLIENT_ID,
-        "client_secret": settings.GOOGLE_CLIENT_SECRET,
+        "client_id": client_id,
+        "client_secret": client_secret,
         "refresh_token": refresh_token,
         "grant_type": "refresh_token",
     }

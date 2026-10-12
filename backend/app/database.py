@@ -10,6 +10,7 @@ if db_url.startswith("sqlite"):
         connect_args={"check_same_thread": False}
     )
 else:
+    connect_args = {"connect_timeout": 5}
     # PostgreSQL configuration tuned for serverless & Supabase poolers
     # pool_pre_ping prevents dead connection errors on severed idle sockets
     # pool_recycle ensures stale connections are periodically reconnected
@@ -19,6 +20,7 @@ else:
         pool_recycle=300,
         pool_size=5,
         max_overflow=2,
+        connect_args=connect_args,
     )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -51,20 +53,22 @@ def check_db_health() -> dict:
 def init_and_migrate_db():
     """
     Initializes database schema.
-    In development SQLite, checks for legacy Phase 1 columns and recreates if needed.
-    In production PostgreSQL, ensures schema is not blindly dropped or recreated on every cold start.
+    In development SQLite, checks for legacy columns and creates tables locally.
+    In production PostgreSQL, schema is managed strictly via explicit Alembic migrations;
+    serverless cold starts MUST NOT perform schema inspection, create_all, or DDL.
     """
+    if settings.ENVIRONMENT.lower() == "production":
+        # Production schema is managed via Alembic migrations. Never run DDL on cold starts.
+        return
+
     if settings.get_database_url().startswith("sqlite"):
-        inspector = inspect(engine)
-        if "briefings" in inspector.get_table_names():
-            columns = [c["name"] for c in inspector.get_columns("briefings")]
-            if "user_id" not in columns:
-                if settings.ENVIRONMENT.lower() != "production":
+        try:
+            inspector = inspect(engine)
+            if "briefings" in inspector.get_table_names():
+                columns = [c["name"] for c in inspector.get_columns("briefings")]
+                if "user_id" not in columns:
                     Base.metadata.drop_all(bind=engine)
-        Base.metadata.create_all(bind=engine)
-    else:
-        # In production PostgreSQL, schema should be managed via Alembic migrations.
-        # Provide non-destructive fallback if tables do not exist yet.
-        inspector = inspect(engine)
-        if "users" not in inspector.get_table_names():
             Base.metadata.create_all(bind=engine)
+        except Exception as e:
+            import logging
+            logging.getLogger("uvicorn.error").warning("Development SQLite init skipped: %s", e)

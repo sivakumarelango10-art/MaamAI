@@ -207,9 +207,16 @@ def _process_google_auth(code: str, state: str, db: Session) -> tuple[User, str]
 def get_google_auth_url():
     """
     Generate the official Google OAuth 2.0 authorization URL with a tamper-evident state parameter.
+    Does not require database connectivity. Fails safely with HTTP 503 if Google OAuth configuration is missing.
     """
     state = generate_oauth_state()
-    auth_url = build_google_auth_url(state)
+    try:
+        auth_url = build_google_auth_url(state)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Google OAuth configuration unavailable: {str(e)}",
+        )
     return {
         "auth_url": auth_url,
         "state": state,
