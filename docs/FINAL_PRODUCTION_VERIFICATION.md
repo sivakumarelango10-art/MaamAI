@@ -14,7 +14,7 @@
 | Component | Status | Details / Evidence |
 |:---|:---|:---|
 | **Production URL** | **ACCESSIBLE** | `https://maamai.vercel.app` serves HTML/CSS/JS bundles with security headers. |
-| **Git Commit (Head)** | **VERIFIED** | Local working tree verified; all changes staged for deployment commit. |
+| **Git Commit (Head)** | **VERIFIED** | `12547c9` (`feat(production): complete Google-only login, Supabase PostgreSQL schema, real Gmail/Calendar services, and security verification`). |
 | **Frontend Runtime** | **PASS** | Vite + React + TypeScript builds cleanly (`dist/assets/index-D3r3utqY.js`). |
 | **FastAPI Backend (Local/CLI)** | **PASS** | 42/42 tests pass; all routes mounted under `/api` (`GET /api/health`, `/api/auth/google/*`, etc.). |
 | **FastAPI Backend (Live Vercel)** | **BLOCKED** | Live `/api/health` currently returns 500 because production secrets (`DATABASE_URL`, `JWT_SECRET_KEY`, `OAUTH_TOKEN_ENCRYPTION_KEY`) have not yet been manually entered in Vercel Project Settings. |
